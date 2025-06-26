@@ -18,7 +18,12 @@ class EversenseApp {
             trend: document.getElementById('trend'),
             loading: document.getElementById('loading'),
             chart: document.getElementById('chart'),
-            errorContainer: document.getElementById('error-container')
+            errorContainer: document.getElementById('error-container'),
+            loginContainer: document.getElementById('login-container'),
+            loginForm: document.getElementById('login-form'),
+            loginBtn: document.getElementById('login-btn'),
+            usernameInput: document.getElementById('username'),
+            passwordInput: document.getElementById('password')
         };
         
         this.init();
@@ -28,37 +33,96 @@ class EversenseApp {
         try {
             console.log('Initializing Eversense Companion...');
             
+            // Check if already authenticated
+            if (EversenseAPI.isAuthenticated()) {
+                await this.startApplication();
+            } else {
+                this.showLoginForm();
+            }
+            
+        } catch (error) {
+            console.error('Failed to initialize application:', error);
+            this.showError('Failed to initialize the application. Please check your connection and try again.');
+        }
+    }
+    
+    showLoginForm() {
+        this.elements.loginContainer.style.display = 'block';
+        this.elements.loading.style.display = 'none';
+        this.elements.chart.style.display = 'none';
+        
+        // Setup form submission
+        this.elements.loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await this.handleLogin();
+        });
+    }
+    
+    async handleLogin() {
+        const username = this.elements.usernameInput.value.trim();
+        const password = this.elements.passwordInput.value;
+        
+        if (!username || !password) {
+            this.showError('Please enter both email and password.');
+            return;
+        }
+        
+        // Disable form during login
+        this.elements.loginBtn.disabled = true;
+        this.elements.loginBtn.textContent = 'Connecting...';
+        this.elements.usernameInput.disabled = true;
+        this.elements.passwordInput.disabled = true;
+        
+        try {
+            console.log('Attempting to authenticate with username:', username);
+            await EversenseAPI.authenticate(username, password);
+            
+            // Hide login form and start application
+            this.elements.loginContainer.style.display = 'none';
+            await this.startApplication();
+            
+        } catch (error) {
+            console.error('Login failed:', error);
+            this.showError(`Login failed: ${error.message}`);
+            
+            // Re-enable form
+            this.elements.loginBtn.disabled = false;
+            this.elements.loginBtn.textContent = 'Connect to Eversense';
+            this.elements.usernameInput.disabled = false;
+            this.elements.passwordInput.disabled = false;
+        }
+    }
+    
+    async startApplication() {
+        try {
             // Show loading state
             this.showLoading();
+            this.clearError();
             
-            // Step 1: Authenticate
-            console.log('Step 1: Authenticating...');
-            await EversenseAPI.authenticate();
-            
-            // Step 2: Initialize chart
-            console.log('Step 2: Initializing chart...');
+            // Step 1: Initialize chart
+            console.log('Initializing chart...');
             this.chart = new GlucoseChart('chart');
             
-            // Step 3: Fetch initial data
-            console.log('Step 3: Fetching initial glucose data...');
+            // Step 2: Fetch initial data
+            console.log('Fetching initial glucose data...');
             const initialData = await EversenseAPI.fetchInitialGlucoseData();
             
-            // Step 4: Update chart with initial data
+            // Step 3: Update chart with initial data
             this.chart.updateChart(initialData);
             this.updateUI(this.chart.getLatestReading());
             
-            // Step 5: Hide loading and show chart
+            // Step 4: Hide loading and show chart
             this.hideLoading();
             
-            // Step 6: Start periodic updates
+            // Step 5: Start periodic updates
             this.startPeriodicUpdates();
             
             this.isInitialized = true;
             console.log('Eversense Companion initialized successfully!');
             
         } catch (error) {
-            console.error('Failed to initialize application:', error);
-            this.showError('Failed to initialize the application. Please check your connection and try again.');
+            console.error('Failed to start application:', error);
+            this.showError('Failed to load glucose data. Please check your connection and try again.');
             this.hideLoading();
         }
     }

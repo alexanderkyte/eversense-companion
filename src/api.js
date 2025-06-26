@@ -2,138 +2,185 @@
  * API Service for Eversense Companion
  * 
  * This module handles authentication and data fetching from the Eversense API.
- * Currently uses mock data and endpoints for demonstration purposes.
- * 
- * To connect to a real API:
- * 1. Replace MOCK_BASE_URL with the actual API endpoint
- * 2. Update the authentication flow to use real OAuth2 or API key authentication
- * 3. Modify the data structures to match the real API response format
- * 4. Add proper error handling for network issues and API errors
- * 5. Implement token refresh logic for expired tokens
+ * Integrated with real Eversense API endpoints.
  */
 
-// Mock API configuration
-const MOCK_BASE_URL = 'https://example.com/api/v1';
-const MOCK_AUTH_URL = 'https://example.com/auth/token';
+// Real Eversense API configuration
+const LOGIN_URL = "https://usiamapi.eversensedms.com/connect/token";
+const USER_DETAILS_URL = "https://usapialpha.eversensedms.com/api/care/GetFollowingPatientList";
+const GLUCOSE_URL = "https://usapialpha.eversensedms.com/api/care/GetFollowingUserSensorGlucose";
 
-// Authentication token storage
+// Authentication and user data storage
 let authToken = null;
+let tokenExpiry = 0;
+let userId = null;
+let credentials = null;
 
 /**
- * Mock authentication function
- * In a real implementation, this would:
- * - Make a POST request to the authentication endpoint
- * - Send credentials (username/password, API key, or OAuth2 flow)
- * - Store the returned bearer token securely
- * - Handle token expiration and refresh
+ * Authentication function for real Eversense API
  */
-async function authenticate() {
+async function authenticate(username, password) {
     try {
-        // Mock authentication request
-        console.log(`[MOCK] Making authentication request to: ${MOCK_AUTH_URL}`);
+        console.log(`Making authentication request to: ${LOGIN_URL}`);
         
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 500));
+        // Store credentials for token refresh
+        credentials = { username, password };
         
-        // Mock response - in real implementation, this would be:
-        // const response = await fetch(MOCK_AUTH_URL, {
-        //     method: 'POST',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        //     body: JSON.stringify({
-        //         username: 'user@example.com',
-        //         password: 'password',
-        //         // or client_id, client_secret for OAuth2
-        //     })
-        // });
-        // const data = await response.json();
-        // authToken = data.access_token;
+        const data = new URLSearchParams({
+            grant_type: "password",
+            client_id: "eversenseMMAAndroid",
+            client_secret: "6ksPx#]~wQ3U",
+            username: username,
+            password: password,
+        });
         
-        authToken = 'mock_bearer_token_' + Date.now();
-        console.log('[MOCK] Authentication successful, token:', authToken);
+        const response = await fetch(LOGIN_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: data
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
+        }
+        
+        const tokenData = await response.json();
+        authToken = tokenData.access_token;
+        tokenExpiry = Date.now() + (tokenData.expires_in || 43200) * 1000 - 60000; // Subtract 1 minute for safety
+        
+        console.log('Authentication successful, token expires in', tokenData.expires_in || 43200, 'seconds');
         
         return authToken;
     } catch (error) {
         console.error('Authentication failed:', error);
-        throw new Error('Failed to authenticate with the API');
+        throw new Error(`Failed to authenticate: ${error.message}`);
     }
 }
 
 /**
- * Generate mock glucose data for testing
- * In a real implementation, this data would come from the API
+ * Ensure the authentication token is valid, refresh if needed
  */
-function generateMockGlucoseData(count = 24) {
-    const data = [];
-    const now = new Date();
+async function ensureTokenValid() {
+    if (!authToken || Date.now() > tokenExpiry) {
+        console.log('Token expired or missing, re-login needed');
+        if (!credentials) {
+            throw new Error('No stored credentials for token refresh');
+        }
+        await authenticate(credentials.username, credentials.password);
+    }
+}
+
+/**
+ * Fetch user details and current glucose state
+ */
+async function fetchUserDetails() {
+    await ensureTokenValid();
     
-    // Generate data points for the last 24 hours (or specified count)
-    for (let i = count - 1; i >= 0; i--) {
-        const timestamp = new Date(now.getTime() - (i * 60 * 1000)); // Every minute
+    const headers = {
+        "Authorization": `Bearer ${authToken}`,
+        "Content-Type": "application/json"
+    };
+    
+    try {
+        console.log(`Fetching user details from: ${USER_DETAILS_URL}`);
+        const response = await fetch(USER_DETAILS_URL, {
+            method: 'GET',
+            headers: headers
+        });
         
-        // Generate realistic glucose values with some patterns
-        let baseValue = 100;
-        const timeOfDay = timestamp.getHours();
-        
-        // Simulate typical glucose patterns
-        if (timeOfDay >= 6 && timeOfDay <= 8) {
-            baseValue += 20; // Morning spike
-        } else if (timeOfDay >= 12 && timeOfDay <= 14) {
-            baseValue += 30; // Lunch spike
-        } else if (timeOfDay >= 18 && timeOfDay <= 20) {
-            baseValue += 25; // Dinner spike
+        if (!response.ok) {
+            throw new Error(`Failed to fetch user details: ${response.status} ${response.statusText}`);
         }
         
-        // Add some random variation
-        const variation = (Math.random() - 0.5) * 40;
-        const value = Math.max(60, Math.min(300, baseValue + variation));
+        const userData = await response.json();
+        userId = userData[0]?.UserID;
         
-        data.push({
-            timestamp: timestamp.toISOString(),
-            value: Math.round(value),
-            trend: Math.random() > 0.5 ? 'stable' : (Math.random() > 0.5 ? 'rising' : 'falling')
-        });
+        console.log('UserID fetched:', userId);
+        
+        // Map trend values
+        const trends = {
+            0: "STALE",
+            1: "FALLING_FAST", 
+            2: "FALLING",
+            3: "FLAT",
+            4: "RISING",
+            5: "RISING_FAST",
+            6: "FALLING_RAPID",
+            7: "RAISING_RAPID"
+        };
+        
+        const state = {
+            currentGlucose: userData[0]?.CurrentGlucose,
+            glucoseTrend: trends[userData[0]?.GlucoseTrend] || "UNKNOWN",
+            isTransmitterConnected: userData[0]?.IsTransmitterConnected
+        };
+        
+        return { userId, state };
+    } catch (error) {
+        console.error('Failed to fetch user details:', error);
+        throw error;
     }
-    
-    return data;
 }
 
 /**
- * Fetch initial glucose data
- * In a real implementation, this would fetch historical data from the API
+ * Fetch historical glucose data
  */
 async function fetchInitialGlucoseData() {
     try {
-        if (!authToken) {
-            throw new Error('Not authenticated. Please authenticate first.');
+        await ensureTokenValid();
+        
+        if (!userId) {
+            const { userId: fetchedUserId } = await fetchUserDetails();
+            userId = fetchedUserId;
         }
         
-        console.log(`[MOCK] Fetching initial glucose data from: ${MOCK_BASE_URL}/glucose/history`);
+        console.log(`Fetching historical glucose data from: ${GLUCOSE_URL}`);
         
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 800));
+        // Get last 24 hours of data
+        const now = new Date();
+        const fromDate = new Date(now.getTime() - 24 * 60 * 60 * 1000);
         
-        // Mock API request - in real implementation:
-        // const response = await fetch(`${MOCK_BASE_URL}/glucose/history`, {
-        //     method: 'GET',
-        //     headers: {
-        //         'Authorization': `Bearer ${authToken}`,
-        //         'Content-Type': 'application/json',
-        //     }
-        // });
-        // 
-        // if (!response.ok) {
-        //     throw new Error(`HTTP error! status: ${response.status}`);
-        // }
-        // 
-        // const data = await response.json();
-        // return data.readings || data.data || [];
+        const requestData = {
+            UserID: userId,
+            startDate: fromDate.toISOString(),
+            endDate: now.toISOString(),
+        };
         
-        const mockData = generateMockGlucoseData(144); // 24 hours of data (every 10 minutes)
-        console.log('[MOCK] Initial glucose data fetched:', mockData.length, 'readings');
+        const response = await fetch(GLUCOSE_URL, {
+            method: 'POST', // Based on Python script, this appears to be a POST with JSON data
+            headers: {
+                'Authorization': `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+        });
         
-        return mockData;
+        if (!response.ok) {
+            throw new Error(`Failed to fetch glucose data: ${response.status} ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        const glucoseReadings = [];
+        
+        for (const event of data) {
+            if (event.EventTypeID === 1 && event.Deleted === false && event.EventDate) {
+                const eventDate = new Date(event.EventDate);
+                glucoseReadings.push({
+                    timestamp: eventDate.toISOString(),
+                    value: Math.round(event.Value),
+                    trend: 'stable' // Default trend, can be enhanced later
+                });
+            }
+        }
+        
+        // Sort by timestamp
+        glucoseReadings.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+        
+        console.log('Historical glucose data fetched:', glucoseReadings.length, 'readings');
+        return glucoseReadings;
+        
     } catch (error) {
         console.error('Failed to fetch initial glucose data:', error);
         throw error;
@@ -141,44 +188,46 @@ async function fetchInitialGlucoseData() {
 }
 
 /**
- * Fetch the latest glucose reading
- * This function is called periodically to get new data points
+ * Fetch the latest glucose reading and user state
  */
 async function fetchLatestGlucoseReading() {
     try {
-        if (!authToken) {
-            throw new Error('Not authenticated. Please authenticate first.');
+        await ensureTokenValid();
+        
+        if (!userId) {
+            const { userId: fetchedUserId } = await fetchUserDetails();
+            userId = fetchedUserId;
         }
         
-        console.log(`[MOCK] Fetching latest glucose reading from: ${MOCK_BASE_URL}/glucose/latest`);
+        console.log('Fetching latest glucose reading and user state');
         
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 300));
+        // Get current user state which includes current glucose
+        const { state } = await fetchUserDetails();
         
-        // Mock API request - in real implementation:
-        // const response = await fetch(`${MOCK_BASE_URL}/glucose/latest`, {
-        //     method: 'GET',
-        //     headers: {
-        //         'Authorization': `Bearer ${authToken}`,
-        //         'Content-Type': 'application/json',
-        //     }
-        // });
-        // 
-        // if (!response.ok) {
-        //     throw new Error(`HTTP error! status: ${response.status}`);
-        // }
-        // 
-        // const data = await response.json();
-        // return data.reading || data.data || null;
+        if (state.currentGlucose) {
+            const trendMap = {
+                'FALLING_FAST': 'falling',
+                'FALLING': 'falling', 
+                'FALLING_RAPID': 'falling',
+                'RISING_FAST': 'rising',
+                'RISING': 'rising',
+                'RAISING_RAPID': 'rising',
+                'FLAT': 'stable',
+                'STALE': 'stable'
+            };
+            
+            const latestReading = {
+                timestamp: new Date().toISOString(),
+                value: Math.round(state.currentGlucose),
+                trend: trendMap[state.glucoseTrend] || 'stable',
+                isTransmitterConnected: state.isTransmitterConnected
+            };
+            
+            console.log('Latest glucose reading fetched:', latestReading);
+            return latestReading;
+        }
         
-        // Generate a new mock data point
-        const mockData = generateMockGlucoseData(1);
-        const latestReading = mockData[0];
-        latestReading.timestamp = new Date().toISOString(); // Current time
-        
-        console.log('[MOCK] Latest glucose reading fetched:', latestReading);
-        
-        return latestReading;
+        return null;
     } catch (error) {
         console.error('Failed to fetch latest glucose reading:', error);
         throw error;
@@ -187,18 +236,20 @@ async function fetchLatestGlucoseReading() {
 
 /**
  * Check if the current token is still valid
- * In a real implementation, this would validate the token with the API
  */
 function isAuthenticated() {
-    return authToken !== null;
+    return authToken !== null && Date.now() < tokenExpiry;
 }
 
 /**
- * Clear authentication token (logout)
+ * Clear authentication token and stored credentials (logout)
  */
 function clearAuthentication() {
     authToken = null;
-    console.log('[MOCK] Authentication cleared');
+    tokenExpiry = 0;
+    userId = null;
+    credentials = null;
+    console.log('Authentication cleared');
 }
 
 // Export the API functions
@@ -206,6 +257,7 @@ window.EversenseAPI = {
     authenticate,
     fetchInitialGlucoseData,
     fetchLatestGlucoseReading,
+    fetchUserDetails,
     isAuthenticated,
     clearAuthentication
 };
