@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eversense Companion - Blood Glucose Monitor</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #2c3e50;
+            margin: 0;
+        }
+        
+        .status {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 6px;
+        }
+        
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .status-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+        
+        .status-value {
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        .status-value.good { color: #27ae60; }
+        .status-value.high { color: #e74c3c; }
+        .status-value.low { color: #f39c12; }
+        
+        .chart-container {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            margin: 20px 0;
+        }
+        
+        .chart {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .zone-good {
+            fill: rgba(39, 174, 96, 0.1);
+        }
+        
+        .zone-high {
+            fill: rgba(231, 76, 60, 0.1);
+        }
+        
+        .zone-low {
+            fill: rgba(243, 156, 18, 0.1);
+        }
+        
+        .axis {
+            font-size: 12px;
+            color: #7f8c8d;
+        }
+        
+        .grid line {
+            stroke: #ecf0f1;
+            stroke-width: 1;
+        }
+        
+        .line {
+            fill: none;
+            stroke: #3498db;
+            stroke-width: 2;
+        }
+        
+        .dot {
+            fill: #3498db;
+            stroke: #fff;
+            stroke-width: 2;
+        }
+        
+        .dot.good { fill: #27ae60; }
+        .dot.high { fill: #e74c3c; }
+        .dot.low { fill: #f39c12; }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 2px;
+        }
+        
+        .legend-color.good { background-color: #27ae60; }
+        .legend-color.high { background-color: #e74c3c; }
+        .legend-color.low { background-color: #f39c12; }
+        
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: #7f8c8d;
+        }
+        
+        .error {
+            background: #fee;
+            color: #c62d42;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #fcc;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Eversense Companion</h1>
+            <p>Real-time Blood Glucose Monitoring</p>
+        </div>
+        
+        <div id="error-container"></div>
+        
+        <div class="status">
+            <div class="status-item">
+                <div class="status-label">Current Reading</div>
+                <div id="current-value" class="status-value">--</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Last Updated</div>
+                <div id="last-updated" class="status-value">--</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Status</div>
+                <div id="status" class="status-value">--</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Trend</div>
+                <div id="trend" class="status-value">--</div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div id="loading" class="loading">Loading glucose data...</div>
+            <svg id="chart" class="chart" style="display: none;"></svg>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color good"></div>
+                <span>Good (80-130 mg/dL)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color high"></div>
+                <span>Too High (>130 mg/dL)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color low"></div>
+                <span>Too Low (<80 mg/dL)</span>
+            </div>
+        </div>
+    </div>
+    
+    <script src="src/api.js"></script>
+    <script src="src/chart.js"></script>
+    <script src="src/app.js"></script>
+</body>
+</html>
