@@ -29,19 +29,24 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: 'browser/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd browser
+          npm ci
 
       - name: Build static site
-        run: npm run build
+        run: |
+          cd browser
+          npm run build
 
       - name: Create release archive
         run: |
-          cd dist
-          zip -r ../eversense-companion-static-site.zip .
-          tar -czf ../eversense-companion-static-site.tar.gz .
-          cd ..
+          cd browser/dist
+          zip -r ../../eversense-companion-static-site.zip .
+          tar -czf ../../eversense-companion-static-site.tar.gz .
+          cd ../..
 
       - name: Get version from tag or input
         id: version
@@ -125,12 +130,17 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+          cache-dependency-path: 'browser/package-lock.json'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          cd browser
+          npm ci
 
       - name: Build static site
-        run: npm run build
+        run: |
+          cd browser
+          npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -138,7 +148,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v2
         with:
-          path: ./dist
+          path: ./browser/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
