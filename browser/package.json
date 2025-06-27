@@ -1,0 +1,43 @@
+{
+  "name": "eversense-companion",
+  "version": "1.0.0",
+  "description": "Client-only D3.js application for visualizing blood glucose levels in a stock ticker style chart",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "http-server . -p 8080 -c-1",
+    "build": "npm run copy-assets",
+    "copy-assets": "mkdir -p dist && cp -r src/* dist/ && cp index.html dist/",
+    "serve": "npm run build && http-server dist -p 8080",
+    "start": "npm run dev",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
+    "release:patch": "npm run version:patch && git add package.json && git commit -m \"Bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "release:minor": "npm run version:minor && git add package.json && git commit -m \"Bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "release:major": "npm run version:major && git add package.json && git commit -m \"Bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "package": "./scripts/create-release.sh"
+  },
+  "keywords": [
+    "d3js",
+    "blood-glucose",
+    "visualization",
+    "chart",
+    "health",
+    "dashboard"
+  ],
+  "author": "Alexander Kyte",
+  "license": "MIT",
+  "dependencies": {
+    "d3": "^7.8.5"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexanderkyte/eversense-companion.git"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
