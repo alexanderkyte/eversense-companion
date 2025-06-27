@@ -1,9 +1,13 @@
-# Eversense Companion Garmin Watchface
+# Eversense Companion Garmin Apps
 
-A Garmin Connect IQ watchface that displays blood glucose monitoring data from the Eversense CGM system.
+Garmin Connect IQ applications that display blood glucose monitoring data from the Eversense CGM system.
 
-## Features
+## Applications
 
+This project includes two Garmin Connect IQ applications:
+
+### 1. Eversense Companion Watchface
+A complete watchface that displays:
 - **24-hour time display** - Shows current time in 24-hour format
 - **Blood glucose monitoring** - Displays current glucose value in mg/dL
 - **Glucose trend indicators** - Shows arrows indicating if glucose is rising (↗), falling (↘), or stable (→)
@@ -12,8 +16,17 @@ A Garmin Connect IQ watchface that displays blood glucose monitoring data from t
 - **Connection status** - Indicates if connected to Eversense data
 - **Automatic updates** - Fetches new glucose data every 90 seconds
 
-## Display Layout
+### 2. Eversense Glucose Data Field
+A data field for activity screens that shows:
+- **Blood glucose value** in mg/dL with color coding
+- **Glucose trend indicators** (↗ ↘ →)
+- **Data age** indicator when space allows
+- **Configurable display format** (value only, value + trend, or value + trend + age)
+- **Adaptive sizing** based on available screen space
 
+## Display Examples
+
+### Watchface Layout
 ```
      12:34
      
@@ -23,6 +36,13 @@ A Garmin Connect IQ watchface that displays blood glucose monitoring data from t
 ♥ 72 BPM    🔋 85%
 
    Connected
+```
+
+### Data Field Examples
+```
+Small:    120
+Medium:   120 ↗
+Large:    120 ↗ 2m
 ```
 
 ## Color Coding
@@ -55,12 +75,40 @@ The watchface connects to the Eversense API using the same endpoints as the main
 - **Toybox.ActivityMonitor** - For heart rate data
 - **Toybox.System** - For battery information
 
-## Installation
+## Installation & Usage
 
+### Watchface Installation
 1. Install Garmin Connect IQ SDK
-2. Open this project in Connect IQ IDE or use command line tools
-3. Configure credentials in the API client (see Security section)
-4. Build and deploy to your Garmin device
+2. Build the watchface: `make build-watchface`
+3. Install on your device or test in simulator
+4. Configure Eversense credentials in watchface settings
+5. Select as your active watchface
+
+### Data Field Installation
+1. Build the data field: `make build-datafield`
+2. Install on your device
+3. Configure Eversense credentials in data field settings
+4. Add to any activity screen:
+   - Start an activity (run, bike, etc.)
+   - Go to data screens settings
+   - Add "Eversense Glucose" data field
+   - Position it where you want glucose data displayed
+
+### Settings Configuration
+
+Both apps have separate settings panels accessible through Garmin Connect:
+
+**Watchface Settings:**
+- Eversense account credentials
+- Update interval (60-300 seconds)
+- Glucose thresholds for color coding
+- Display options (show seconds)
+
+**Data Field Settings:**
+- Eversense account credentials  
+- Update interval (60-300 seconds)
+- Glucose thresholds for color coding
+- Display format (value only, value + trend, value + trend + age)
 
 ## Configuration
 
@@ -93,11 +141,32 @@ password = "your-password";
 ### Using Command Line
 
 ```bash
-# Compile the project
-monkeyc -m manifest.xml -z resources/ -o EversenseWatchface.prg
+# Build both apps for default device (vivoactive4)
+make build
 
-# Or using jungle file
-monkeyc -f monkey.jungle -o EversenseWatchface.prg
+# Build specific app only
+make build-watchface
+make build-datafield
+
+# Build for specific device
+make build DEVICE=fenix6
+
+# Build for all supported devices
+make build-all
+
+# Test in simulator
+make sim-watchface
+make sim-datafield
+```
+
+### Using Connect IQ SDK directly
+
+```bash
+# Build watchface
+monkeyc -m manifest.xml -z resources/ -o EversenseWatchface.prg -d vivoactive4 --package-app eversense-watchface
+
+# Build datafield  
+monkeyc -m manifest.xml -z resources/ -o EversenseDataField.prg -d vivoactive4 --package-app eversense-datafield
 ```
 
 ## Security Considerations
