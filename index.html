@@ -248,13 +248,20 @@
                            placeholder="Your password">
                 </div>
                 
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; font-weight: normal; cursor: pointer;">
+                        <input type="checkbox" id="remember-me" name="remember-me" style="margin-right: 8px;">
+                        Remember my credentials for future visits
+                    </label>
+                </div>
+                
                 <button type="submit" class="btn" id="login-btn">
                     Connect to Eversense
                 </button>
             </form>
             
             <div class="login-note">
-                <strong>Note:</strong> This connects directly to the Eversense API. Your credentials are used only for authentication and are not stored permanently.
+                <strong>Note:</strong> This connects directly to the Eversense API. When "Remember me" is checked, your credentials are saved locally in your browser for convenience. You can clear them at any time by unchecking the option and logging in again.
             </div>
         </div>
         

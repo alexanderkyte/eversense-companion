@@ -23,7 +23,8 @@ class EversenseApp {
             loginForm: document.getElementById('login-form'),
             loginBtn: document.getElementById('login-btn'),
             usernameInput: document.getElementById('username'),
-            passwordInput: document.getElementById('password')
+            passwordInput: document.getElementById('password'),
+            rememberMeCheckbox: document.getElementById('remember-me')
         };
         
         this.init();
@@ -37,6 +38,21 @@ class EversenseApp {
             if (EversenseAPI.isAuthenticated()) {
                 await this.startApplication();
             } else {
+                // Check for saved credentials and try auto-login
+                const savedCredentials = EversenseAPI.getSavedCredentials();
+                if (savedCredentials && savedCredentials.username && savedCredentials.password) {
+                    console.log('Found saved credentials, attempting auto-login...');
+                    try {
+                        await EversenseAPI.authenticate(savedCredentials.username, savedCredentials.password, true);
+                        await this.startApplication();
+                        return;
+                    } catch (error) {
+                        console.log('Auto-login failed, showing login form:', error.message);
+                        // Clear invalid saved credentials
+                        EversenseAPI.clearSavedCredentials();
+                    }
+                }
+                
                 this.showLoginForm();
             }
             
@@ -51,6 +67,14 @@ class EversenseApp {
         this.elements.loading.style.display = 'none';
         this.elements.chart.style.display = 'none';
         
+        // Pre-populate form with saved credentials if available
+        const savedCredentials = EversenseAPI.getSavedCredentials();
+        if (savedCredentials) {
+            this.elements.usernameInput.value = savedCredentials.username || '';
+            this.elements.passwordInput.value = savedCredentials.password || '';
+            this.elements.rememberMeCheckbox.checked = savedCredentials.rememberMe || false;
+        }
+        
         // Setup form submission
         this.elements.loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -61,6 +85,7 @@ class EversenseApp {
     async handleLogin() {
         const username = this.elements.usernameInput.value.trim();
         const password = this.elements.passwordInput.value;
+        const rememberMe = this.elements.rememberMeCheckbox.checked;
         
         if (!username || !password) {
             this.showError('Please enter both email and password.');
@@ -72,10 +97,11 @@ class EversenseApp {
         this.elements.loginBtn.textContent = 'Connecting...';
         this.elements.usernameInput.disabled = true;
         this.elements.passwordInput.disabled = true;
+        this.elements.rememberMeCheckbox.disabled = true;
         
         try {
             console.log('Attempting to authenticate with username:', username);
-            await EversenseAPI.authenticate(username, password);
+            await EversenseAPI.authenticate(username, password, rememberMe);
             
             // Hide login form and start application
             this.elements.loginContainer.style.display = 'none';
@@ -90,6 +116,7 @@ class EversenseApp {
             this.elements.loginBtn.textContent = 'Connect to Eversense';
             this.elements.usernameInput.disabled = false;
             this.elements.passwordInput.disabled = false;
+            this.elements.rememberMeCheckbox.disabled = false;
         }
     }
     

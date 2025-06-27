@@ -16,10 +16,17 @@ let tokenExpiry = 0;
 let userId = null;
 let credentials = null;
 
+// LocalStorage keys for credential persistence
+const STORAGE_KEYS = {
+    USERNAME: 'eversense_username',
+    PASSWORD: 'eversense_password',
+    REMEMBER: 'eversense_remember'
+};
+
 /**
  * Authentication function for real Eversense API
  */
-async function authenticate(username, password) {
+async function authenticate(username, password, rememberMe = false) {
     try {
         console.log(`Making authentication request to: ${LOGIN_URL}`);
         
@@ -50,6 +57,13 @@ async function authenticate(username, password) {
         authToken = tokenData.access_token;
         tokenExpiry = Date.now() + (tokenData.expires_in || 43200) * 1000 - 60000; // Subtract 1 minute for safety
         
+        // Save credentials to localStorage if remember is enabled
+        if (rememberMe) {
+            saveCredentials(username, password);
+        } else {
+            clearSavedCredentials();
+        }
+        
         console.log('Authentication successful, token expires in', tokenData.expires_in || 43200, 'seconds');
         
         return authToken;
@@ -65,10 +79,18 @@ async function authenticate(username, password) {
 async function ensureTokenValid() {
     if (!authToken || Date.now() > tokenExpiry) {
         console.log('Token expired or missing, re-login needed');
+        
         if (!credentials) {
-            throw new Error('No stored credentials for token refresh');
+            // Try to load saved credentials
+            const savedCredentials = getSavedCredentials();
+            if (savedCredentials) {
+                credentials = { username: savedCredentials.username, password: savedCredentials.password };
+            } else {
+                throw new Error('No stored credentials for token refresh');
+            }
         }
-        await authenticate(credentials.username, credentials.password);
+        
+        await authenticate(credentials.username, credentials.password, true); // Auto-save if refreshing
     }
 }
 
@@ -235,6 +257,53 @@ async function fetchLatestGlucoseReading() {
 }
 
 /**
+ * Save credentials to localStorage
+ */
+function saveCredentials(username, password) {
+    try {
+        localStorage.setItem(STORAGE_KEYS.USERNAME, username);
+        localStorage.setItem(STORAGE_KEYS.PASSWORD, password);
+        localStorage.setItem(STORAGE_KEYS.REMEMBER, 'true');
+        console.log('Credentials saved to localStorage');
+    } catch (error) {
+        console.warn('Failed to save credentials to localStorage:', error);
+    }
+}
+
+/**
+ * Load saved credentials from localStorage
+ */
+function getSavedCredentials() {
+    try {
+        const rememberMe = localStorage.getItem(STORAGE_KEYS.REMEMBER) === 'true';
+        if (rememberMe) {
+            const username = localStorage.getItem(STORAGE_KEYS.USERNAME);
+            const password = localStorage.getItem(STORAGE_KEYS.PASSWORD);
+            if (username && password) {
+                return { username, password, rememberMe: true };
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to load credentials from localStorage:', error);
+    }
+    return null;
+}
+
+/**
+ * Clear saved credentials from localStorage
+ */
+function clearSavedCredentials() {
+    try {
+        localStorage.removeItem(STORAGE_KEYS.USERNAME);
+        localStorage.removeItem(STORAGE_KEYS.PASSWORD);
+        localStorage.removeItem(STORAGE_KEYS.REMEMBER);
+        console.log('Saved credentials cleared from localStorage');
+    } catch (error) {
+        console.warn('Failed to clear credentials from localStorage:', error);
+    }
+}
+
+/**
  * Check if the current token is still valid
  */
 function isAuthenticated() {
@@ -259,5 +328,7 @@ window.EversenseAPI = {
     fetchLatestGlucoseReading,
     fetchUserDetails,
     isAuthenticated,
-    clearAuthentication
+    clearAuthentication,
+    getSavedCredentials,
+    clearSavedCredentials
 };
