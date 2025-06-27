@@ -156,9 +156,69 @@ This application is compatible with:
 - Safari 12+
 - Edge 79+
 
-## Deployment
+## Release Management
 
-### Static Site Deployment
+### Automated Releases
+
+This project includes automated release workflows that build and package the static site for distribution.
+
+#### Creating a Release
+
+1. **Automatic Version Bump and Release**:
+   ```bash
+   # For patch version (1.0.0 -> 1.0.1)
+   npm run release:patch
+   
+   # For minor version (1.0.0 -> 1.1.0)
+   npm run release:minor
+   
+   # For major version (1.0.0 -> 2.0.0)
+   npm run release:major
+   ```
+
+2. **Manual Release via GitHub Actions**:
+   - Go to the GitHub Actions tab in your repository
+   - Select "Build and Release" workflow
+   - Click "Run workflow"
+   - Enter the desired version (e.g., v1.0.1)
+   - Click "Run workflow"
+
+#### What Happens During a Release
+
+When a release is triggered:
+
+1. **Builds the static site** using `npm run build`
+2. **Creates downloadable archives**:
+   - `eversense-companion-static-site.zip`
+   - `eversense-companion-static-site.tar.gz`
+3. **Creates a GitHub Release** with:
+   - Release notes
+   - Downloadable static site archives
+   - Deployment instructions
+4. **Deploys to GitHub Pages** (for tagged releases)
+
+#### Release Assets
+
+Each release includes:
+- **Complete static site** ready for deployment
+- **All source files** (HTML, CSS, JavaScript)
+- **Dependencies included** (D3.js)
+- **Production-optimized** files
+
+#### GitHub Pages Deployment
+
+Tagged releases automatically deploy to GitHub Pages at:
+`https://<username>.github.io/eversense-companion`
+
+To enable GitHub Pages:
+1. Go to repository Settings
+2. Navigate to Pages section
+3. Select "GitHub Actions" as the source
+4. Create a release using one of the methods above
+
+### Manual Deployment
+
+#### Static Site Deployment
 
 The application can be deployed to any static site hosting service:
 
@@ -174,9 +234,31 @@ The application can be deployed to any static site hosting service:
    - AWS S3
    - Any other static hosting service
 
-### CDN Deployment
+#### CDN Deployment
 
 For better performance, consider using a CDN to serve the static assets. The application is optimized for edge caching.
+
+### Version Management
+
+The project uses semantic versioning (semver):
+- **Patch** (x.x.X): Bug fixes and minor updates
+- **Minor** (x.X.x): New features that don't break existing functionality
+- **Major** (X.x.x): Breaking changes or major feature overhauls
+
+#### Manual Version Updates
+
+If you prefer manual version management:
+
+```bash
+# Update version without git operations
+npm run version:patch  # or version:minor, version:major
+
+# Then manually create git tag and push
+git add package.json
+git commit -m "Bump version to $(node -p "require('./package.json').version")"
+git tag v$(node -p "require('./package.json').version")
+git push && git push --tags
+```
 
 ## Security Considerations
 

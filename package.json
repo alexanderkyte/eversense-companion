@@ -8,7 +8,14 @@
     "build": "npm run copy-assets",
     "copy-assets": "mkdir -p dist && cp -r src/* dist/ && cp index.html dist/",
     "serve": "npm run build && http-server dist -p 8080",
-    "start": "npm run dev"
+    "start": "npm run dev",
+    "version:patch": "npm version patch --no-git-tag-version",
+    "version:minor": "npm version minor --no-git-tag-version",
+    "version:major": "npm version major --no-git-tag-version",
+    "release:patch": "npm run version:patch && git add package.json && git commit -m \"Bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "release:minor": "npm run version:minor && git add package.json && git commit -m \"Bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "release:major": "npm run version:major && git add package.json && git commit -m \"Bump version to $(node -p \"require('./package.json').version\")\" && git tag v$(node -p \"require('./package.json').version\") && git push && git push --tags",
+    "package": "./scripts/create-release.sh"
   },
   "keywords": [
     "d3js",
