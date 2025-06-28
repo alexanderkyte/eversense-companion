@@ -47,6 +47,12 @@ class EversenseBaseView {
     }
     
     function startGlucoseUpdates() {
+        // Check if in test mode
+        if (EversenseTestUtils.isTestMode()) {
+            loadTestData();
+            return;
+        }
+        
         // Immediate update
         updateGlucoseData();
         
@@ -56,9 +62,26 @@ class EversenseBaseView {
     }
     
     function updateGlucoseData() {
+        // Check if in test mode
+        if (EversenseTestUtils.isTestMode()) {
+            loadTestData();
+            return;
+        }
+        
         if (apiClient != null) {
             apiClient.fetchLatestGlucose(method(:onGlucoseUpdate));
         }
+    }
+    
+    function loadTestData() {
+        // Load test data from properties
+        glucoseValue = Properties.getValue("testGlucoseValue");
+        glucoseTrend = Properties.getValue("testGlucoseTrend");
+        isConnected = Properties.getValue("testIsConnected");
+        if (isConnected == null) { isConnected = false; }
+        
+        lastGlucoseUpdate = Sys.getTimer();
+        Ui.requestUpdate();
     }
     
     function onGlucoseUpdate(data) {

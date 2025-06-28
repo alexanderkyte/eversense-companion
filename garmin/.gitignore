@@ -9,6 +9,14 @@ dist/
 *.tar.gz
 *.zip
 
+# Testing artifacts
+test-output/
+test-screenshots/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
 # IDE files
 .vscode/
 *.swp

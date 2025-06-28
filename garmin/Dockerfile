@@ -11,6 +11,10 @@ RUN apt-get update && apt-get install -y \
     openjdk-11-jdk \
     curl \
     ca-certificates \
+    xvfb \
+    scrot \
+    imagemagick \
+    make \
     && rm -rf /var/lib/apt/lists/*
 
 # Set JAVA_HOME

@@ -57,14 +57,48 @@ clean:
 	rm -f *.prg
 	rm -f *.debug
 	rm -rf dist/
+	rm -rf test-screenshots/
+	rm -rf test-output/
+	rm -rf screenshots/
 
-# Run watchface in simulator
+# Run tests for both apps
+test: test-watchface test-datafield
+
+# Run comprehensive tests with screenshots
+test-all:
+	@echo "Running comprehensive test suite..."
+	./test.sh $(DEVICE)
+
+# Run tests for watchface only
+test-watchface: build-watchface
+	@echo "Testing watchface functionality..."
+	./test.sh $(DEVICE) watchface
+
+# Run tests for datafield only
+test-datafield: build-datafield
+	@echo "Testing datafield functionality..."
+	./test.sh $(DEVICE) datafield
+
+# Generate screenshots for all scenarios
+screenshots:
+	@echo "Generating screenshots for $(DEVICE)..."
+	./screenshot.sh $(DEVICE)
+
+# Generate screenshots for all devices
+screenshots-all:
+	@echo "Generating screenshots for all devices..."
+	@for device in vivoactive4 fenix6 venu2; do \
+		echo "Generating screenshots for $$device..."; \
+		./screenshot.sh $$device; \
+	done
+
+# Run watchface in simulator (legacy target)
 sim-watchface: build-watchface
 	@echo "Starting watchface simulator for $(DEVICE)..."
 	$(SDK_PATH)/bin/connectiq &
 	$(SDK_PATH)/bin/monkeydo $(WATCHFACE_OUTPUT) $(DEVICE)
 
-# Run datafield in simulator
+# Run datafield in simulator (legacy target)  
 sim-datafield: build-datafield
 	@echo "Starting datafield simulator for $(DEVICE)..."
 	$(SDK_PATH)/bin/connectiq &
@@ -105,9 +139,15 @@ help:
 	@echo "  build-watchface - Build watchface only"
 	@echo "  build-datafield - Build datafield only"
 	@echo "  build-all      - Build both apps for all supported devices"
-	@echo "  clean          - Remove build artifacts"
+	@echo "  clean          - Remove build artifacts and test outputs"
 	@echo "  sim-watchface  - Run watchface in simulator"
 	@echo "  sim-datafield  - Run datafield in simulator"
+	@echo "  test           - Run tests for both apps"
+	@echo "  test-all       - Run comprehensive test suite with screenshots"
+	@echo "  test-watchface - Test watchface functionality"
+	@echo "  test-datafield - Test datafield functionality"
+	@echo "  screenshots    - Generate screenshots for current device"
+	@echo "  screenshots-all - Generate screenshots for all devices"
 	@echo "  package        - Create distribution package"
 	@echo "  docker-build   - Build using Docker (recommended for CI/CD)"
 	@echo "  docker-package - Clean Docker build for distribution"
@@ -117,4 +157,4 @@ help:
 	@echo "  DEVICE    - Target device (default: $(DEVICE))"
 	@echo "  SDK_PATH  - Path to Connect IQ SDK"
 
-.PHONY: all build build-watchface build-datafield build-all clean sim-watchface sim-datafield package docker-build docker-package install-sdk help
+.PHONY: all build build-watchface build-datafield build-all clean sim-watchface sim-datafield test test-all test-watchface test-datafield screenshots screenshots-all package docker-build docker-package install-sdk help
