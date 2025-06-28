@@ -1,61 +1,26 @@
 using Toybox.WatchUi as Ui;
 using Toybox.Graphics as Gfx;
 using Toybox.System as Sys;
-using Toybox.Lang as Lang;
 using Toybox.Time as Time;
 using Toybox.Time.Gregorian as Calendar;
 using Toybox.ActivityMonitor as ActivityMonitor;
 using Toybox.SensorHistory as SensorHistory;
-using Toybox.Communications as Communications;
-using Toybox.Timer as Timer;
 using Toybox.Application.Properties as Properties;
 
 class EversenseWatchFaceView extends Ui.WatchFace {
 
-    // Colors
-    var goodColor = 0x00AA00;
-    var highColor = 0xFF0000;
-    var lowColor = 0xFFAA00;
-    var textColor = 0xFFFFFF;
     var backgroundColor = 0x000000;
-    
-    // Glucose data
-    var glucoseValue = null;
-    var glucoseTrend = "stable";
-    var lastGlucoseUpdate = null;
-    var isConnected = false;
-    
-    // Settings
-    var lowThreshold = 80;
-    var highThreshold = 130;
-    var updateInterval = 90000; // 90 seconds in milliseconds
     var showSeconds = false;
-    
-    // API client
-    var apiClient;
-    var updateTimer;
+    var baseView;
 
     function initialize() {
         WatchFace.initialize();
-        loadSettings();
-        apiClient = new EversenseAPIClient();
-        
-        // Start glucose data updates
-        startGlucoseUpdates();
+        baseView = new EversenseBaseView();
+        baseView.initialize();
+        loadWatchFaceSettings();
     }
     
-    function loadSettings() {
-        // Load user settings
-        lowThreshold = Properties.getValue("lowThreshold");
-        if (lowThreshold == null) { lowThreshold = 80; }
-        
-        highThreshold = Properties.getValue("highThreshold");
-        if (highThreshold == null) { highThreshold = 130; }
-        
-        var intervalSec = Properties.getValue("updateInterval");
-        if (intervalSec == null) { intervalSec = 90; }
-        updateInterval = intervalSec * 1000; // Convert to milliseconds
-        
+    function loadWatchFaceSettings() {
         showSeconds = Properties.getValue("showSeconds");
         if (showSeconds == null) { showSeconds = false; }
     }
@@ -120,18 +85,18 @@ class EversenseWatchFaceView extends Ui.WatchFace {
     }
     
     function drawGlucose(dc, x, y) {
-        if (glucoseValue != null) {
-            var glucoseString = glucoseValue.format("%d") + " mg/dL";
-            var color = getGlucoseColor(glucoseValue);
+        if (baseView.glucoseValue != null) {
+            var glucoseString = baseView.glucoseValue.format("%d") + " mg/dL";
+            var color = baseView.getGlucoseColor();
             
             dc.setColor(color, Gfx.COLOR_TRANSPARENT);
             dc.drawText(x, y, Gfx.FONT_MEDIUM, glucoseString, Gfx.TEXT_JUSTIFY_CENTER);
             
             // Draw trend arrow
-            var trendSymbol = getTrendSymbol(glucoseTrend);
+            var trendSymbol = baseView.getTrendSymbol();
             dc.drawText(x, y + 25, Gfx.FONT_SMALL, trendSymbol, Gfx.TEXT_JUSTIFY_CENTER);
         } else {
-            dc.setColor(textColor, Gfx.COLOR_TRANSPARENT);
+            dc.setColor(baseView.textColor, Gfx.COLOR_TRANSPARENT);
             dc.drawText(x, y, Gfx.FONT_MEDIUM, "-- mg/dL", Gfx.TEXT_JUSTIFY_CENTER);
         }
     }
@@ -140,7 +105,7 @@ class EversenseWatchFaceView extends Ui.WatchFace {
         var heartRate = getHeartRate();
         var hrString = heartRate != null ? heartRate.format("%d") + " BPM" : "-- BPM";
         
-        dc.setColor(textColor, Gfx.COLOR_TRANSPARENT);
+        dc.setColor(baseView.textColor, Gfx.COLOR_TRANSPARENT);
         dc.drawText(x, y, Gfx.FONT_TINY, "♥ " + hrString, Gfx.TEXT_JUSTIFY_CENTER);
     }
     
@@ -148,14 +113,14 @@ class EversenseWatchFaceView extends Ui.WatchFace {
         var battery = Sys.getSystemStats().battery;
         var batteryString = battery.format("%.0f") + "%";
         
-        var color = battery > 20 ? textColor : lowColor;
+        var color = battery > 20 ? baseView.textColor : baseView.lowColor;
         dc.setColor(color, Gfx.COLOR_TRANSPARENT);
         dc.drawText(x, y, Gfx.FONT_TINY, "🔋 " + batteryString, Gfx.TEXT_JUSTIFY_CENTER);
     }
     
     function drawConnectionStatus(dc, x, y) {
-        var statusText = isConnected ? "Connected" : "No Data";
-        var color = isConnected ? goodColor : lowColor;
+        var statusText = baseView.isConnected ? "Connected" : "No Data";
+        var color = baseView.isConnected ? baseView.goodColor : baseView.lowColor;
         
         dc.setColor(color, Gfx.COLOR_TRANSPARENT);
         dc.drawText(x, y, Gfx.FONT_XTINY, statusText, Gfx.TEXT_JUSTIFY_CENTER);
@@ -170,57 +135,12 @@ class EversenseWatchFaceView extends Ui.WatchFace {
         }
         return null;
     }
-    
-    function getGlucoseColor(value) {
-        if (value < lowThreshold) {
-            return lowColor;
-        } else if (value > highThreshold) {
-            return highColor;
-        } else {
-            return goodColor;
-        }
-    }
-    
-    function getTrendSymbol(trend) {
-        if (trend.equals("rising") || trend.equals("RISING") || trend.equals("RISING_FAST")) {
-            return "↗";
-        } else if (trend.equals("falling") || trend.equals("FALLING") || trend.equals("FALLING_FAST")) {
-            return "↘";
-        } else {
-            return "→";
-        }
-    }
-    
-    function startGlucoseUpdates() {
-        // Initial fetch
-        fetchGlucoseData();
-        
-        // Set up timer for periodic updates (from settings)
-        updateTimer = new Timer.Timer();
-        updateTimer.start(method(:fetchGlucoseData), updateInterval, true);
-    }
-    
-    function fetchGlucoseData() {
-        apiClient.fetchLatestGlucose(method(:onGlucoseDataReceived));
-    }
-    
-    function onGlucoseDataReceived(data) {
-        if (data != null) {
-            glucoseValue = data["value"];
-            glucoseTrend = data["trend"];
-            isConnected = data["connected"];
-            lastGlucoseUpdate = Time.now();
-            Ui.requestUpdate();
-        }
-    }
 
     // Called when this View is removed from the screen. Save the
     // state of this View here. This includes freeing resources from
     // memory.
     function onHide() {
-        if (updateTimer != null) {
-            updateTimer.stop();
-        }
+        baseView.onHide();
     }
 
     // The user has just looked at their watch. Timers and animations may be started here.

@@ -1,117 +1,25 @@
 using Toybox.WatchUi as Ui;
 using Toybox.Graphics as Gfx;
 using Toybox.System as Sys;
-using Toybox.Lang as Lang;
 using Toybox.ActivityMonitor as ActivityMonitor;
-using Toybox.Communications as Communications;
-using Toybox.Timer as Timer;
 using Toybox.Application.Properties as Properties;
 using Toybox.Activity as Activity;
 
 class EversenseDataFieldView extends Ui.DataField {
 
-    // Colors
-    var goodColor = 0x00AA00;
-    var highColor = 0xFF0000;
-    var lowColor = 0xFFAA00;
-    var textColor = 0xFFFFFF;
-    
-    // Glucose data
-    var glucoseValue = null;
-    var glucoseTrend = "stable";
-    var lastGlucoseUpdate = null;
-    var isConnected = false;
-    
-    // Settings
-    var lowThreshold = 80;
-    var highThreshold = 130;
-    var updateInterval = 90000; // 90 seconds in milliseconds
-    
-    // API client
-    var apiClient;
-    var updateTimer;
-    
-    // Display format
+    var baseView;
     var displayFormat = 0; // 0 = value only, 1 = value + trend, 2 = value + trend + time
 
     function initialize() {
         DataField.initialize();
-        loadSettings();
-        apiClient = new EversenseAPIClient();
-        
-        // Start glucose data updates
-        startGlucoseUpdates();
+        baseView = new EversenseBaseView();
+        baseView.initialize();
+        loadDataFieldSettings();
     }
     
-    function loadSettings() {
-        // Load user settings
-        lowThreshold = Properties.getValue("lowThreshold");
-        if (lowThreshold == null) { lowThreshold = 80; }
-        
-        highThreshold = Properties.getValue("highThreshold");
-        if (highThreshold == null) { highThreshold = 130; }
-        
-        updateInterval = Properties.getValue("updateInterval");
-        if (updateInterval == null) { updateInterval = 90; }
-        updateInterval = updateInterval * 1000; // Convert to milliseconds
-        
+    function loadDataFieldSettings() {
         displayFormat = Properties.getValue("dataFieldFormat");
         if (displayFormat == null) { displayFormat = 1; }
-    }
-    
-    function startGlucoseUpdates() {
-        // Initial glucose fetch
-        fetchGlucoseData();
-        
-        // Set up periodic updates
-        updateTimer = new Timer.Timer();
-        updateTimer.start(method(:fetchGlucoseData), updateInterval, true);
-    }
-    
-    function fetchGlucoseData() {
-        if (apiClient != null) {
-            apiClient.getGlucoseData(method(:onGlucoseDataReceived));
-        }
-    }
-    
-    function onGlucoseDataReceived(glucoseData) {
-        if (glucoseData != null) {
-            glucoseValue = glucoseData.get("value");
-            var trendValue = glucoseData.get("trend");
-            glucoseTrend = mapTrendToSymbol(trendValue);
-            lastGlucoseUpdate = Sys.getTimer();
-            isConnected = true;
-        } else {
-            isConnected = false;
-        }
-    }
-    
-    function mapTrendToSymbol(trend) {
-        if (trend == null) {
-            return "→";
-        }
-        
-        if (trend > 1.5) {
-            return "↗";
-        } else if (trend < -1.5) {
-            return "↘";
-        } else {
-            return "→";
-        }
-    }
-    
-    function getGlucoseColor() {
-        if (glucoseValue == null) {
-            return textColor;
-        }
-        
-        if (glucoseValue < lowThreshold) {
-            return lowColor;
-        } else if (glucoseValue > highThreshold) {
-            return highColor;
-        } else {
-            return goodColor;
-        }
     }
     
     // The given info object contains all the current workout information.
@@ -128,7 +36,7 @@ class EversenseDataFieldView extends Ui.DataField {
     // once a second when the data field is visible.
     function onUpdate(dc) {
         var bgColor = getBackgroundColor();
-        var fgColor = getGlucoseColor();
+        var fgColor = baseView.getGlucoseColor();
         
         // Clear the field
         dc.setColor(bgColor, bgColor);
@@ -155,18 +63,18 @@ class EversenseDataFieldView extends Ui.DataField {
         dc.drawText(textX, textY, font, displayText, Gfx.TEXT_JUSTIFY_CENTER);
         
         // Draw connection indicator if disconnected (small dot)
-        if (!isConnected) {
-            dc.setColor(highColor, Gfx.COLOR_TRANSPARENT);
+        if (!baseView.isConnected) {
+            dc.setColor(baseView.lowColor, Gfx.COLOR_TRANSPARENT);
             dc.fillCircle(width - 5, 5, 2);
         }
     }
     
     function getDisplayText(width, height) {
-        if (glucoseValue == null) {
+        if (baseView.glucoseValue == null) {
             return "--";
         }
         
-        var glucoseText = glucoseValue.toString();
+        var glucoseText = baseView.glucoseValue.toString();
         
         // Format based on display setting and available space
         if (displayFormat == 0 || width < 60) {
@@ -174,21 +82,21 @@ class EversenseDataFieldView extends Ui.DataField {
             return glucoseText;
         } else if (displayFormat == 1 || width < 100) {
             // Value + trend
-            return glucoseText + " " + glucoseTrend;
+            return glucoseText + " " + baseView.getTrendSymbol();
         } else {
             // Value + trend + age indicator
             var ageText = getDataAge();
-            return glucoseText + " " + glucoseTrend + " " + ageText;
+            return glucoseText + " " + baseView.getTrendSymbol() + " " + ageText;
         }
     }
     
     function getDataAge() {
-        if (lastGlucoseUpdate == null) {
+        if (baseView.lastGlucoseUpdate == null) {
             return "";
         }
         
         var currentTime = Sys.getTimer();
-        var ageMs = currentTime - lastGlucoseUpdate;
+        var ageMs = currentTime - baseView.lastGlucoseUpdate;
         var ageMinutes = ageMs / 60000;
         
         if (ageMinutes < 1) {

@@ -56,6 +56,7 @@ build-all:
 clean:
 	rm -f *.prg
 	rm -f *.debug
+	rm -rf dist/
 
 # Run watchface in simulator
 sim-watchface: build-watchface
@@ -78,6 +79,19 @@ package: build-all
 	tar -czf eversense-garmin-companion.tar.gz dist/
 	@echo "Package created: eversense-garmin-companion.tar.gz"
 
+# Docker build - builds for all devices in a containerized environment
+docker-build:
+	@echo "Building Garmin apps using Docker..."
+	docker build -t eversense-garmin-builder .
+	docker run --rm -v $(PWD)/dist:/workspace/dist eversense-garmin-builder
+	@echo "Docker build complete! Artifacts in ./dist/"
+
+# Docker package - same as docker-build but ensures clean state
+docker-package: clean
+	@echo "Clean Docker build for distribution..."
+	docker build --no-cache -t eversense-garmin-builder .
+	docker run --rm -v $(PWD)/dist:/workspace/dist eversense-garmin-builder
+
 # Install SDK (helper target)
 install-sdk:
 	@echo "Please download and install the Connect IQ SDK from:"
@@ -95,10 +109,12 @@ help:
 	@echo "  sim-watchface  - Run watchface in simulator"
 	@echo "  sim-datafield  - Run datafield in simulator"
 	@echo "  package        - Create distribution package"
+	@echo "  docker-build   - Build using Docker (recommended for CI/CD)"
+	@echo "  docker-package - Clean Docker build for distribution"
 	@echo "  help           - Show this help"
 	@echo ""
 	@echo "Variables:"
 	@echo "  DEVICE    - Target device (default: $(DEVICE))"
 	@echo "  SDK_PATH  - Path to Connect IQ SDK"
 
-.PHONY: all build build-watchface build-datafield build-all clean sim-watchface sim-datafield package install-sdk help
+.PHONY: all build build-watchface build-datafield build-all clean sim-watchface sim-datafield package docker-build docker-package install-sdk help
