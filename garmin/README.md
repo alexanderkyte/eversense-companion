@@ -132,6 +132,20 @@ password = "your-password";
 
 ## Build Instructions
 
+### Using Docker (Recommended)
+
+The easiest way to build for all supported devices:
+
+```bash
+# Build using Docker (no SDK installation required)
+make docker-build
+
+# Clean build for distribution
+make docker-package
+```
+
+This will create `dist/` folder with .prg files for all supported devices.
+
 ### Using Connect IQ IDE
 
 1. Import project into Connect IQ IDE
@@ -184,6 +198,13 @@ monkeyc -m manifest.xml -z resources/ -o EversenseDataField.prg -d vivoactive4 -
 2. **Authentication failed**: Verify username/password are correct
 3. **Old glucose data**: Check if 90-second updates are working
 4. **Heart rate not showing**: Ensure watch has HR sensor and permission
+
+### Docker Build Issues
+
+1. **Docker not available**: Install Docker Desktop or Docker Engine
+2. **Permission denied**: Ensure user is in docker group or use sudo
+3. **Build failures**: Check Docker daemon is running and internet connection
+4. **Large image size**: This is normal due to Java SDK and Garmin SDK requirements
 
 ### Debug Information
 
