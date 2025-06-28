@@ -15,10 +15,13 @@ errors=0
 echo "Checking required files..."
 required_files=(
     "manifest.xml"
-    "source/EversenseWatchFaceApp.mc"
+    "source/EversenseApp.mc"
     "source/EversenseWatchFaceView.mc"
     "source/EversenseWatchFaceDelegate.mc"
     "source/EversenseAPIClient.mc"
+    "source/EversenseBaseView.mc"
+    "source/EversenseDataFieldView.mc"
+    "source/EversenseTestUtils.mc"
     "resources/strings/strings.xml"
     "resources/drawables/drawables.xml"
     "settings.json"
@@ -63,7 +66,7 @@ echo ""
 echo "Checking source files..."
 
 # Check for key classes
-if grep -q "class EversenseWatchFaceApp" source/EversenseWatchFaceApp.mc; then
+if grep -q "class EversenseWatchFaceApp\|class EversenseDataFieldApp" source/EversenseApp.mc; then
     echo "✓ Main app class defined"
 else
     echo "✗ Main app class missing"
