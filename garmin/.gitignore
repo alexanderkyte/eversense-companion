@@ -1,0 +1,33 @@
+# Garmin Connect IQ build artifacts
+*.prg
+*.debug
+*.symbol
+*.iq
+
+# Distribution
+dist/
+*.tar.gz
+*.zip
+
+# Testing artifacts
+test-output/
+test-screenshots/
+screenshots/
+*.png
+*.jpg
+*.jpeg
+
+# IDE files
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp/
+temp/
+/tmp/test-config.mc

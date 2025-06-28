@@ -1,0 +1,27 @@
+&lt;?xml version="1.0"?&gt;
+&lt;iq:manifest xmlns:iq="http://www.garmin.com/xml/connectiq" version="3"&gt;
+    &lt;iq:application entry="EversenseWatchFaceApp" id="eversense-watchface" launcherIcon="@Drawables.LauncherIcon" name="@Strings.AppName" type="watchface" version="1.0.0"&gt;
+        &lt;iq:products&gt;
+            &lt;iq:product id="vivoactive4s"/&gt;
+            &lt;iq:product id="vivoactive4"/&gt;
+            &lt;iq:product id="venu"/&gt;
+            &lt;iq:product id="venu2"/&gt;
+            &lt;iq:product id="venu2s"/&gt;
+            &lt;iq:product id="fenix6"/&gt;
+            &lt;iq:product id="fenix6s"/&gt;
+            &lt;iq:product id="fenix6x"/&gt;
+            &lt;iq:product id="forerunner245"/&gt;
+        &lt;/iq:products&gt;
+        
+        &lt;iq:permissions&gt;
+            &lt;iq:uses-permission id="Communications"/&gt;
+            &lt;iq:uses-permission id="Sensor"/&gt;
+        &lt;/iq:permissions&gt;
+        
+        &lt;iq:languages&gt;
+            &lt;iq:language&gt;eng&lt;/iq:language&gt;
+        &lt;/iq:languages&gt;
+        
+        &lt;iq:barrels/&gt;
+    &lt;/iq:application&gt;
+&lt;/iq:manifest&gt;

@@ -1,0 +1,5 @@
+project.manifest = manifest.xml
+base.sourcePath = source;resources
+
+# Minimum SDK version
+base.minSdkVersion = 3.2.0

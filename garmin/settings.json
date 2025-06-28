@@ -1,0 +1,68 @@
+{
+    "title": "Eversense Companion Settings",
+    "groups": [
+        {
+            "title": "API Configuration",
+            "settings": [
+                {
+                    "key": "username",
+                    "title": "Username",
+                    "description": "Your Eversense account email",
+                    "type": "alphaNumeric",
+                    "required": true
+                },
+                {
+                    "key": "password", 
+                    "title": "Password",
+                    "description": "Your Eversense account password",
+                    "type": "password",
+                    "required": true
+                }
+            ]
+        },
+        {
+            "title": "Display Options",
+            "settings": [
+                {
+                    "key": "updateInterval",
+                    "title": "Update Interval",
+                    "description": "How often to fetch new glucose data (seconds)",
+                    "type": "number",
+                    "default": 90,
+                    "min": 60,
+                    "max": 300
+                },
+                {
+                    "key": "showSeconds",
+                    "title": "Show Seconds",
+                    "description": "Display seconds in time",
+                    "type": "boolean",
+                    "default": false
+                }
+            ]
+        },
+        {
+            "title": "Glucose Thresholds",
+            "settings": [
+                {
+                    "key": "lowThreshold",
+                    "title": "Low Glucose Threshold",
+                    "description": "mg/dL value below which glucose is considered low",
+                    "type": "number",
+                    "default": 80,
+                    "min": 50,
+                    "max": 100
+                },
+                {
+                    "key": "highThreshold", 
+                    "title": "High Glucose Threshold",
+                    "description": "mg/dL value above which glucose is considered high",
+                    "type": "number",
+                    "default": 130,
+                    "min": 120,
+                    "max": 200
+                }
+            ]
+        }
+    ]
+}

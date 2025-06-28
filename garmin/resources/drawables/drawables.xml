@@ -1,0 +1,10 @@
+&lt;resources&gt;
+    &lt;layouts&gt;
+        &lt;layout id="WatchFace"&gt;
+            &lt;label x="center" y="center" text="@Strings.AppName" justification="Gfx.TEXT_JUSTIFY_CENTER" /&gt;
+        &lt;/layout&gt;
+    &lt;/layouts&gt;
+    &lt;drawables&gt;
+        &lt;bitmap id="LauncherIcon" filename="launcher_icon.png" /&gt;
+    &lt;/drawables&gt;
+&lt;/resources&gt;
