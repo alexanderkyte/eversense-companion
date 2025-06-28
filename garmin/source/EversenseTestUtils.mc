@@ -18,7 +18,7 @@ class EversenseTestUtils {
     static const TEST_TREND_FALLING = "falling";
     static const TEST_TREND_STABLE = "stable";
     
-    // Test scenarios
+    // Test scenarios - all ensure test mode is enabled to prevent network calls
     static function setupNormalGlucoseScenario() {
         Properties.setValue("testMode", true);
         Properties.setValue("testGlucoseValue", TEST_GLUCOSE_NORMAL);
@@ -26,6 +26,7 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", true);
         Properties.setValue("testBatteryLevel", 85);
         Properties.setValue("testHeartRate", 72);
+        Sys.println("Test mode enabled: Normal glucose scenario activated");
     }
     
     static function setupHighGlucoseScenario() {
@@ -35,6 +36,7 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", true);
         Properties.setValue("testBatteryLevel", 65);
         Properties.setValue("testHeartRate", 88);
+        Sys.println("Test mode enabled: High glucose scenario activated");
     }
     
     static function setupLowGlucoseScenario() {
@@ -44,6 +46,7 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", true);
         Properties.setValue("testBatteryLevel", 45);
         Properties.setValue("testHeartRate", 95);
+        Sys.println("Test mode enabled: Low glucose scenario activated");
     }
     
     static function setupCriticalHighScenario() {
@@ -53,6 +56,7 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", true);
         Properties.setValue("testBatteryLevel", 25);
         Properties.setValue("testHeartRate", 105);
+        Sys.println("Test mode enabled: Critical high glucose scenario activated");
     }
     
     static function setupCriticalLowScenario() {
@@ -62,6 +66,7 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", true);
         Properties.setValue("testBatteryLevel", 15);
         Properties.setValue("testHeartRate", 110);
+        Sys.println("Test mode enabled: Critical low glucose scenario activated");
     }
     
     static function setupDisconnectedScenario() {
@@ -71,6 +76,7 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", false);
         Properties.setValue("testBatteryLevel", 75);
         Properties.setValue("testHeartRate", 68);
+        Sys.println("Test mode enabled: Disconnected scenario activated");
     }
     
     static function setupLowBatteryScenario() {
@@ -80,15 +86,17 @@ class EversenseTestUtils {
         Properties.setValue("testIsConnected", true);
         Properties.setValue("testBatteryLevel", 8);
         Properties.setValue("testHeartRate", 72);
+        Sys.println("Test mode enabled: Low battery scenario activated");
     }
     
-    // Test layout scenarios for different screen types
+    // Test layout scenarios for different screen types - ensure test mode enabled
     static function setupRoundScreenTest() {
         Properties.setValue("testMode", true);
         Properties.setValue("testScreenType", "round");
         Properties.setValue("testGlucoseValue", TEST_GLUCOSE_NORMAL);
         Properties.setValue("testGlucoseTrend", TEST_TREND_STABLE);
         Properties.setValue("testIsConnected", true);
+        Sys.println("Test mode enabled: Round screen layout test activated");
     }
     
     static function setupRectangularScreenTest() {
@@ -97,6 +105,7 @@ class EversenseTestUtils {
         Properties.setValue("testGlucoseValue", TEST_GLUCOSE_NORMAL);
         Properties.setValue("testGlucoseTrend", TEST_TREND_STABLE);
         Properties.setValue("testIsConnected", true);
+        Sys.println("Test mode enabled: Rectangular screen layout test activated");
     }
     
     // Validation methods for frontend behavior
@@ -163,15 +172,31 @@ class EversenseTestUtils {
         return passedTests == testResults.size();
     }
     
+    // Force enable test mode - called by test scripts to ensure no network traffic
+    static function forceEnableTestMode() {
+        Properties.setValue("testMode", true);
+        Properties.setValue("networkDisabled", true); // Additional safety flag
+        Sys.println("FORCE TEST MODE: All network access disabled for testing");
+    }
+    
+    // Check if network access should be disabled (test mode or explicit network disable)
+    static function isNetworkDisabled() {
+        var testMode = Properties.getValue("testMode");
+        var networkDisabled = Properties.getValue("networkDisabled");
+        return (testMode != null && testMode == true) || (networkDisabled != null && networkDisabled == true);
+    }
+    
     // Clear test mode
     static function clearTestMode() {
         Properties.setValue("testMode", false);
+        Properties.setValue("networkDisabled", false);
         Properties.setValue("testGlucoseValue", null);
         Properties.setValue("testGlucoseTrend", null);
         Properties.setValue("testIsConnected", null);
         Properties.setValue("testBatteryLevel", null);
         Properties.setValue("testHeartRate", null);
         Properties.setValue("testScreenType", null);
+        Sys.println("Test mode disabled: Network access restored");
     }
     
     // Get test mode status

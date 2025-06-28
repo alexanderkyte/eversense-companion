@@ -31,6 +31,13 @@ class EversenseAPIClient {
         loadSettings();
     }
     
+    // Check if running in test mode to prevent network calls during testing
+    function isTestMode() {
+        var testMode = Properties.getValue("testMode");
+        var networkDisabled = Properties.getValue("networkDisabled");
+        return (testMode != null && testMode == true) || (networkDisabled != null && networkDisabled == true);
+    }
+    
     function loadStoredData() {
         accessToken = Storage.getValue(ACCESS_TOKEN_KEY);
         tokenExpiry = Storage.getValue(TOKEN_EXPIRY_KEY);
@@ -61,6 +68,20 @@ class EversenseAPIClient {
     }
     
     function authenticate(callback) {
+        // Check if in test mode - never make network calls during testing
+        if (isTestMode()) {
+            Sys.println("Test mode: Skipping authentication network call");
+            // Simulate successful authentication for testing
+            accessToken = "test_access_token";
+            tokenExpiry = Time.now().value() + 3600; // Valid for 1 hour
+            Storage.setValue(ACCESS_TOKEN_KEY, accessToken);
+            Storage.setValue(TOKEN_EXPIRY_KEY, tokenExpiry);
+            if (callback != null) {
+                callback.invoke(true);
+            }
+            return;
+        }
+        
         var params = {
             "grant_type" => "password",
             "client_id" => CLIENT_ID,
@@ -102,6 +123,31 @@ class EversenseAPIClient {
     }
     
     function fetchLatestGlucose(callback) {
+        // Check if in test mode - never make network calls during testing
+        if (isTestMode()) {
+            Sys.println("Test mode: Returning mock glucose data instead of network call");
+            // Return mock glucose data based on test properties
+            var testGlucose = Properties.getValue("testGlucoseValue");
+            var testTrend = Properties.getValue("testGlucoseTrend");
+            var testConnected = Properties.getValue("testIsConnected");
+            
+            if (testGlucose == null) {
+                // Default test values if not set
+                testGlucose = 110;
+                testTrend = "stable";
+                testConnected = true;
+            }
+            
+            var mockResult = {
+                "value" => testGlucose,
+                "trend" => testTrend != null ? testTrend : "stable",
+                "connected" => testConnected != null ? testConnected : true
+            };
+            
+            callback.invoke(mockResult);
+            return;
+        }
+        
         if (!isTokenValid()) {
             // Need to authenticate first
             authenticate(null);

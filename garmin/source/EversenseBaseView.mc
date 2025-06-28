@@ -68,6 +68,13 @@ class EversenseBaseView {
             return;
         }
         
+        // Double-check network safety
+        if (EversenseTestUtils.isNetworkDisabled()) {
+            Sys.println("Network disabled: Using default test data instead of API call");
+            loadTestData();
+            return;
+        }
+        
         if (apiClient != null) {
             apiClient.fetchLatestGlucose(method(:onGlucoseUpdate));
         }

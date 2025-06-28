@@ -1,21 +1,47 @@
 # Testing and Screenshot Generation Guide
 
-This guide explains how to test the Eversense Companion Garmin apps and generate screenshots for documentation and verification purposes.
+This guide explains how to test the Eversense Companion Garmin apps safely without making any network calls, and generate screenshots for documentation and verification purposes.
 
 ## Overview
 
 The testing framework provides:
-- **Frontend behavior validation** - Tests glucose display, color coding, trend indicators
+- **Network-free testing** - All tests run without making external network calls
+- **Frontend behavior validation** - Tests glucose display, color coding, trend indicators  
+- **Mock data injection** - Realistic test scenarios using simulated glucose data
 - **Automated screenshot generation** - Captures app appearance across different scenarios
 - **Layout testing** - Validates adaptive layouts for round vs rectangular screens
 - **CI/CD integration** - Automated testing and screenshot generation in GitHub Actions
 
+## Network Safety
+
+**🔒 No Network Traffic During Testing**
+
+The testing framework implements multiple layers of protection to ensure no network calls are made during testing:
+
+1. **Test Mode Detection** - API client automatically detects test mode and blocks network calls
+2. **Mock Data Injection** - Test utilities provide realistic glucose data without network access
+3. **Forced Test Mode** - Test scripts explicitly enable test mode at startup
+4. **Network Disabled Flag** - Additional safety flag prevents accidental network access
+5. **Verification Tools** - Scripts validate that no network calls are attempted
+
+### Verify Network Safety
+```bash
+cd garmin
+make verify-no-network  # Verifies all network calls are properly blocked
+```
+
 ## Quick Start
 
-### Run All Tests
+### Run All Tests (Network-Free)
 ```bash
 cd garmin
 make test-all DEVICE=vivoactive4
+```
+
+### Verify No Network Access
+```bash
+cd garmin
+make verify-no-network
 ```
 
 ### Generate Screenshots
@@ -34,7 +60,7 @@ make screenshots-all
 
 ### test.sh - Comprehensive Test Suite
 
-The main test script validates app functionality and generates test reports:
+The main test script validates app functionality without making network calls:
 
 ```bash
 # Test with default device (vivoactive4)
@@ -46,6 +72,12 @@ The main test script validates app functionality and generates test reports:
 # Test with custom SDK path
 SDK_PATH=/opt/garmin ./test.sh vivoactive4
 ```
+
+**Network Safety Features:**
+- Automatically enables test mode at startup
+- Validates no network access throughout testing
+- Uses only mock data for all test scenarios
+- Generates detailed reports confirming network-free operation
 
 **What it tests:**
 - App build validation
@@ -146,37 +178,144 @@ make clean              # Remove all build and test artifacts
 
 ## CI/CD Integration
 
+## Test Mode Implementation
+
+### How Network Blocking Works
+
+The apps implement comprehensive test mode detection to prevent any network traffic during testing:
+
+#### 1. API Client Protection
+```monkey-c
+// EversenseAPIClient.mc
+function authenticate(callback) {
+    // Check if in test mode - never make network calls during testing
+    if (isTestMode()) {
+        Sys.println("Test mode: Skipping authentication network call");
+        // Simulate successful authentication for testing
+        accessToken = "test_access_token";
+        tokenExpiry = Time.now().value() + 3600;
+        return;
+    }
+    // Normal network call only in production...
+}
+
+function fetchLatestGlucose(callback) {
+    if (isTestMode()) {
+        Sys.println("Test mode: Returning mock glucose data instead of network call");
+        // Return mock data based on test properties
+        var mockResult = {
+            "value" => testGlucose,
+            "trend" => testTrend,
+            "connected" => testConnected
+        };
+        callback.invoke(mockResult);
+        return;
+    }
+    // Normal network call only in production...
+}
+```
+
+#### 2. Base View Safety Checks
+```monkey-c
+// EversenseBaseView.mc
+function updateGlucoseData() {
+    // Multiple layers of protection
+    if (EversenseTestUtils.isTestMode()) {
+        loadTestData();
+        return;
+    }
+    
+    if (EversenseTestUtils.isNetworkDisabled()) {
+        Sys.println("Network disabled: Using default test data");
+        loadTestData();
+        return;
+    }
+    
+    // Only reach here in production mode
+    if (apiClient != null) {
+        apiClient.fetchLatestGlucose(method(:onGlucoseUpdate));
+    }
+}
+```
+
+#### 3. Test Utilities Control
+```monkey-c
+// EversenseTestUtils.mc
+static function forceEnableTestMode() {
+    Properties.setValue("testMode", true);
+    Properties.setValue("networkDisabled", true);
+    Sys.println("FORCE TEST MODE: All network access disabled");
+}
+
+static function isNetworkDisabled() {
+    var testMode = Properties.getValue("testMode");
+    var networkDisabled = Properties.getValue("networkDisabled");
+    return (testMode == true) || (networkDisabled == true);
+}
+```
+
+### Test Data Scenarios
+
+All test scenarios use mock data without network calls:
+
+- **Normal Glucose** (110 mg/dL, stable trend)
+- **High Glucose** (180 mg/dL, rising trend)  
+- **Low Glucose** (65 mg/dL, falling trend)
+- **Critical High** (250 mg/dL, rising fast)
+- **Critical Low** (40 mg/dL, falling fast)
+- **Disconnected State** (no data, offline)
+- **Low Battery** (normal glucose, 8% battery)
+
+### Validation Tools
+
+#### verify-no-network.sh
+```bash
+./verify-no-network.sh
+```
+Validates:
+- ✓ Test mode implementation in source code
+- ✓ Network call protection patterns  
+- ✓ Test script safety measures
+- ✓ All network calls properly blocked
+
+## CI/CD Integration
+
 ### GitHub Actions
 
-The release workflow automatically:
+The release workflow automatically runs network-free tests:
 1. Builds all Garmin apps using Docker
-2. Runs test suite with validation
-3. Generates screenshots and documentation
-4. Packages test reports and screenshots for release
-5. Includes artifacts in GitHub releases
+2. **Enables test mode and validates no network access**
+3. Runs comprehensive test suite with mock data
+4. Generates screenshots using test scenarios
+5. Packages test reports confirming network-free operation
+6. Includes artifacts in GitHub releases
 
 **Release artifacts:**
 - `eversense-garmin-apps.zip` - App binaries (.prg files)
 - `eversense-garmin-screenshots.zip` - Screenshots and gallery
-- `eversense-garmin-test-reports.zip` - Test reports and validation
+- `eversense-garmin-test-reports.zip` - Test reports and network validation
 
 ### Docker Testing
 
-Docker environment includes:
+Docker environment includes network-free testing:
 - Connect IQ SDK with simulator
+- Test mode enforcement
+- Mock data generation  
 - Screenshot capture tools (xvfb, scrot, imagemagick)
-- Automated build validation
+- Network access validation
 - Test documentation generation
 
 ```bash
-# Build and test in Docker
+# Build and test in Docker (network-free)
 make docker-build
 
 # The Docker process automatically:
-# 1. Builds apps for all devices
-# 2. Runs build validation tests  
-# 3. Generates test documentation
-# 4. Creates package with artifacts
+# 1. Forces test mode to disable network access
+# 2. Builds apps for all devices
+# 3. Runs validation tests with mock data
+# 4. Validates no network traffic occurred
+# 5. Generates test documentation
+# 6. Creates package with artifacts
 ```
 
 ## Screenshot Methods

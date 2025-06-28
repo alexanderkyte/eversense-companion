@@ -64,8 +64,13 @@ clean:
 # Run tests for both apps
 test: test-watchface test-datafield
 
-# Run comprehensive tests with screenshots
-test-all:
+# Verify no network traffic during testing
+verify-no-network:
+	@echo "Verifying no network traffic during testing..."
+	./verify-no-network.sh
+
+# Run comprehensive tests with screenshots and network verification
+test-all: verify-no-network
 	@echo "Running comprehensive test suite..."
 	./test.sh $(DEVICE)
 
@@ -143,9 +148,10 @@ help:
 	@echo "  sim-watchface  - Run watchface in simulator"
 	@echo "  sim-datafield  - Run datafield in simulator"
 	@echo "  test           - Run tests for both apps"
-	@echo "  test-all       - Run comprehensive test suite with screenshots"
+	@echo "  test-all       - Run comprehensive test suite with screenshots and network verification"
 	@echo "  test-watchface - Test watchface functionality"
 	@echo "  test-datafield - Test datafield functionality"
+	@echo "  verify-no-network - Verify no network traffic during testing"
 	@echo "  screenshots    - Generate screenshots for current device"
 	@echo "  screenshots-all - Generate screenshots for all devices"
 	@echo "  package        - Create distribution package"
@@ -157,4 +163,4 @@ help:
 	@echo "  DEVICE    - Target device (default: $(DEVICE))"
 	@echo "  SDK_PATH  - Path to Connect IQ SDK"
 
-.PHONY: all build build-watchface build-datafield build-all clean sim-watchface sim-datafield test test-all test-watchface test-datafield screenshots screenshots-all package docker-build docker-package install-sdk help
+.PHONY: all build build-watchface build-datafield build-all clean sim-watchface sim-datafield test test-all test-watchface test-datafield verify-no-network screenshots screenshots-all package docker-build docker-package install-sdk help
