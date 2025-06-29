@@ -5,6 +5,13 @@
  * Integrated with real Eversense API endpoints.
  */
 
+// Development mode detection - checks if running on localhost
+const isDevelopmentMode = () => {
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1' || 
+           window.location.hostname === '0.0.0.0';
+};
+
 // Real Eversense API configuration
 const LOGIN_URL = "https://usiamapi.eversensedms.com/connect/token";
 const USER_DETAILS_URL = "https://usapialpha.eversensedms.com/api/care/GetFollowingPatientList";
@@ -23,11 +30,92 @@ const STORAGE_KEYS = {
     REMEMBER: 'eversense_remember'
 };
 
+// Mock data for development mode
+const MOCK_DATA = {
+    // Mock authentication response
+    authResponse: {
+        access_token: "mock_access_token_for_development",
+        expires_in: 43200
+    },
+    
+    // Mock user details response
+    userDetails: [{
+        UserID: "mock_user_123",
+        CurrentGlucose: 105,
+        GlucoseTrend: 3, // FLAT
+        IsTransmitterConnected: true
+    }],
+    
+    // Mock glucose readings for last 24 hours
+    glucoseData: generateMockGlucoseData()
+};
+
 /**
- * Authentication function for real Eversense API
+ * Generate realistic mock glucose data for the last 24 hours
+ */
+function generateMockGlucoseData() {
+    const readings = [];
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    
+    // Generate a reading every 5 minutes for 24 hours
+    let currentTime = new Date(twentyFourHoursAgo);
+    let currentValue = 95 + Math.random() * 40; // Start with value between 95-135
+    
+    while (currentTime < now) {
+        // Simulate realistic glucose variations
+        const variation = (Math.random() - 0.5) * 10; // +/- 5 mg/dL variation
+        currentValue = Math.max(70, Math.min(200, currentValue + variation));
+        
+        readings.push({
+            EventTypeID: 1,
+            Deleted: false,
+            EventDate: currentTime.toISOString(),
+            Value: Math.round(currentValue)
+        });
+        
+        // Next reading in 5 minutes
+        currentTime = new Date(currentTime.getTime() + 5 * 60 * 1000);
+    }
+    
+    return readings;
+}
+
+/**
+ * Authentication function for real Eversense API (with development mode support)
  */
 async function authenticate(username, password, rememberMe = false) {
     try {
+        console.log('Authentication request started...');
+        
+        // In development mode, use mock authentication
+        if (isDevelopmentMode()) {
+            console.log('🚀 Development mode detected - using mock authentication');
+            
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Store credentials for token refresh
+            credentials = { username, password };
+            
+            // Use mock token data
+            const tokenData = MOCK_DATA.authResponse;
+            authToken = tokenData.access_token;
+            tokenExpiry = Date.now() + (tokenData.expires_in || 43200) * 1000 - 60000; // Subtract 1 minute for safety
+            
+            // Save credentials to localStorage if remember is enabled
+            if (rememberMe) {
+                saveCredentials(username, password);
+            } else {
+                clearSavedCredentials();
+            }
+            
+            console.log('✅ Mock authentication successful, token expires in', tokenData.expires_in || 43200, 'seconds');
+            
+            return authToken;
+        }
+        
+        // Production mode - use real Eversense API
         console.log(`Making authentication request to: ${LOGIN_URL}`);
         
         // Store credentials for token refresh
@@ -95,11 +183,45 @@ async function ensureTokenValid() {
 }
 
 /**
- * Fetch user details and current glucose state
+ * Fetch user details and current glucose state (with development mode support)
  */
 async function fetchUserDetails() {
     await ensureTokenValid();
     
+    // In development mode, use mock data
+    if (isDevelopmentMode()) {
+        console.log('🚀 Development mode - using mock user details');
+        
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        const userData = MOCK_DATA.userDetails;
+        userId = userData[0]?.UserID;
+        
+        console.log('Mock UserID fetched:', userId);
+        
+        // Map trend values
+        const trends = {
+            0: "STALE",
+            1: "FALLING_FAST", 
+            2: "FALLING",
+            3: "FLAT",
+            4: "RISING",
+            5: "RISING_FAST",
+            6: "FALLING_RAPID",
+            7: "RAISING_RAPID"
+        };
+        
+        const state = {
+            currentGlucose: userData[0]?.CurrentGlucose,
+            glucoseTrend: trends[userData[0]?.GlucoseTrend] || "UNKNOWN",
+            isTransmitterConnected: userData[0]?.IsTransmitterConnected
+        };
+        
+        return { userId, state };
+    }
+    
+    // Production mode - use real API
     const headers = {
         "Authorization": `Bearer ${authToken}`,
         "Content-Type": "application/json"
@@ -147,7 +269,7 @@ async function fetchUserDetails() {
 }
 
 /**
- * Fetch historical glucose data
+ * Fetch historical glucose data (with development mode support)
  */
 async function fetchInitialGlucoseData() {
     try {
@@ -158,6 +280,35 @@ async function fetchInitialGlucoseData() {
             userId = fetchedUserId;
         }
         
+        // In development mode, use mock data
+        if (isDevelopmentMode()) {
+            console.log('🚀 Development mode - using mock historical glucose data');
+            
+            // Simulate network delay
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            const data = MOCK_DATA.glucoseData;
+            const glucoseReadings = [];
+            
+            for (const event of data) {
+                if (event.EventTypeID === 1 && event.Deleted === false && event.EventDate) {
+                    const eventDate = new Date(event.EventDate);
+                    glucoseReadings.push({
+                        timestamp: eventDate.toISOString(),
+                        value: Math.round(event.Value),
+                        trend: 'stable' // Default trend, can be enhanced later
+                    });
+                }
+            }
+            
+            // Sort by timestamp
+            glucoseReadings.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            
+            console.log('Mock historical glucose data fetched:', glucoseReadings.length, 'readings');
+            return glucoseReadings;
+        }
+        
+        // Production mode - use real API
         console.log(`Fetching historical glucose data from: ${GLUCOSE_URL}`);
         
         // Get last 24 hours of data
@@ -210,7 +361,7 @@ async function fetchInitialGlucoseData() {
 }
 
 /**
- * Fetch the latest glucose reading and user state
+ * Fetch the latest glucose reading and user state (with development mode support)
  */
 async function fetchLatestGlucoseReading() {
     try {
@@ -321,6 +472,19 @@ function clearAuthentication() {
     console.log('Authentication cleared');
 }
 
+/**
+ * Show development mode indicator if in development mode
+ */
+function showDevelopmentModeIndicator() {
+    if (isDevelopmentMode()) {
+        const indicator = document.getElementById('dev-mode-indicator');
+        if (indicator) {
+            indicator.style.display = 'block';
+        }
+        console.log('🚀 Development mode active - CORS issues bypassed with mock data');
+    }
+}
+
 // Export the API functions
 window.EversenseAPI = {
     authenticate,
@@ -330,5 +494,7 @@ window.EversenseAPI = {
     isAuthenticated,
     clearAuthentication,
     getSavedCredentials,
-    clearSavedCredentials
+    clearSavedCredentials,
+    showDevelopmentModeIndicator,
+    isDevelopmentMode
 };
