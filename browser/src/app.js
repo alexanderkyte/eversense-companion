@@ -109,7 +109,13 @@ class EversenseApp {
             
         } catch (error) {
             console.error('Login failed:', error);
-            this.showError(`Login failed: ${error.message}`);
+            
+            // Show enhanced error message for CORS issues
+            if (error.isDevelopmentCorsError) {
+                this.showCorsError(error.message);
+            } else {
+                this.showError(`Login failed: ${error.message}`);
+            }
             
             // Re-enable form
             this.elements.loginBtn.disabled = false;
@@ -274,6 +280,21 @@ class EversenseApp {
         errorDiv.innerHTML = `
             <strong>Error:</strong> ${message}
             <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; color: inherit; cursor: pointer; font-size: 16px;">×</button>
+        `;
+        
+        this.elements.errorContainer.innerHTML = '';
+        this.elements.errorContainer.appendChild(errorDiv);
+    }
+    
+    showCorsError(message) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'error cors-error';
+        errorDiv.innerHTML = `
+            <div style="white-space: pre-line; line-height: 1.5;">
+                <strong>🚫 Development CORS Error</strong>
+                ${message}
+            </div>
+            <button onclick="this.parentElement.remove()" style="float: right; background: none; border: none; color: inherit; cursor: pointer; font-size: 16px; margin-top: -20px;">×</button>
         `;
         
         this.elements.errorContainer.innerHTML = '';

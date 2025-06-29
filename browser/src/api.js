@@ -24,6 +24,64 @@ const STORAGE_KEYS = {
 };
 
 /**
+ * Check if we're running in development mode
+ */
+function isDevelopmentMode() {
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1' || 
+           window.location.hostname === '0.0.0.0';
+}
+
+/**
+ * Handle CORS errors with helpful instructions
+ */
+function handleCorsError(error, operation = 'API request') {
+    if (isDevelopmentMode() && error.message.includes('CORS')) {
+        const corsError = new Error(`
+CORS Error in Development Mode
+
+The ${operation} was blocked by your browser's CORS policy. This is expected when developing locally.
+
+To fix this, you have several options:
+
+1. **Use Chrome with disabled security** (easiest for development):
+   Close all Chrome windows, then run:
+   chrome --disable-web-security --disable-features=VizDisplayCompositor --user-data-dir=/tmp/chrome-dev-session
+
+2. **Use a CORS browser extension**:
+   Install a CORS extension like "CORS Unblock" or "CORS Everywhere"
+
+3. **Use Firefox Developer Edition**:
+   Firefox Developer Edition has more relaxed CORS policies for local development
+
+4. **Use the production deployed version**:
+   The app works normally when deployed to a web server
+
+Original error: ${error.message}
+        `);
+        corsError.name = 'CORSError';
+        corsError.isDevelopmentCorsError = true;
+        return corsError;
+    }
+    return error;
+}
+
+/**
+ * Enhanced fetch with CORS error handling
+ */
+async function safeFetch(url, options = {}) {
+    try {
+        const response = await fetch(url, options);
+        return response;
+    } catch (error) {
+        // Check if this is a CORS error
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+            throw handleCorsError(error, `request to ${url}`);
+        }
+        throw error;
+    }
+}
+/**
  * Authentication function for real Eversense API
  */
 async function authenticate(username, password, rememberMe = false) {
@@ -41,7 +99,7 @@ async function authenticate(username, password, rememberMe = false) {
             password: password,
         });
         
-        const response = await fetch(LOGIN_URL, {
+        const response = await safeFetch(LOGIN_URL, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
@@ -69,7 +127,7 @@ async function authenticate(username, password, rememberMe = false) {
         return authToken;
     } catch (error) {
         console.error('Authentication failed:', error);
-        throw new Error(`Failed to authenticate: ${error.message}`);
+        throw error; // Re-throw the enhanced error
     }
 }
 
@@ -107,7 +165,7 @@ async function fetchUserDetails() {
     
     try {
         console.log(`Fetching user details from: ${USER_DETAILS_URL}`);
-        const response = await fetch(USER_DETAILS_URL, {
+        const response = await safeFetch(USER_DETAILS_URL, {
             method: 'GET',
             headers: headers
         });
@@ -170,7 +228,7 @@ async function fetchInitialGlucoseData() {
             endDate: now.toISOString(),
         };
         
-        const response = await fetch(GLUCOSE_URL, {
+        const response = await safeFetch(GLUCOSE_URL, {
             method: 'POST', // Based on Python script, this appears to be a POST with JSON data
             headers: {
                 'Authorization': `Bearer ${authToken}`,
