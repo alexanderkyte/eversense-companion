@@ -45,6 +45,15 @@ npm run dev
 
 This will start a local server at `http://localhost:8080`. The application will automatically reload when you make changes to the source files.
 
+**🚀 CORS-Free Local Development**: When running on localhost, the application automatically detects the development environment and uses mock data instead of making real API calls. This prevents CORS errors that would otherwise block local development. You'll see a blue "Development Mode" indicator when this is active.
+
+**Development Features:**
+- Automatic localhost detection
+- Realistic mock glucose data generation  
+- No external API calls (avoids CORS issues)
+- All authentication works with any credentials
+- Visual development mode indicator
+
 ### Production Build
 
 To build the application for production:
@@ -277,14 +286,19 @@ git push && git push --tags
    - Verify data format matches expected structure
 
 2. **API connection issues**:
-   - Check network connectivity
-   - Verify API endpoint URLs are correct
-   - Ensure CORS is properly configured
+   - **Local Development**: CORS issues are automatically resolved! The app uses mock data when running on localhost
+   - **Production**: Check network connectivity and verify API endpoint URLs are correct
+   - Ensure CORS is properly configured on the API server (production only)
 
 3. **Authentication failures**:
-   - Verify API credentials are correct
-   - Check if authentication tokens have expired
+   - **Local Development**: Any credentials work in development mode
+   - **Production**: Verify API credentials are correct and check if tokens have expired
    - Ensure API server is accessible
+
+4. **CORS Errors** (Historical - Now Fixed):
+   - ✅ **Fixed for Local Development**: No longer an issue when running `npm run dev`
+   - The application automatically detects localhost and uses mock data
+   - No external API calls are made during local development
 
 ### Debug Mode
 
