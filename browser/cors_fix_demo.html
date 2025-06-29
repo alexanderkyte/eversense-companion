@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Fix Demonstration</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>🩸 Eversense Companion CORS Fix Demonstration</h1>
+    
+    <div class="test-section">
+        <h3>Environment Detection</h3>
+        <div id="env-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Mock Data Generation</h3>
+        <div id="mock-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>API Function Simulation</h3>
+        <div id="api-test"></div>
+    </div>
+    
+    <div class="test-section">
+        <h3>Expected Behavior in Original vs Fixed Version</h3>
+        <div id="comparison"></div>
+    </div>
+
+    <script>
+        // Development mode detection (copied from api.js)
+        const isDevelopmentMode = () => {
+            return window.location.hostname === 'localhost' || 
+                   window.location.hostname === '127.0.0.1' || 
+                   window.location.hostname === '0.0.0.0';
+        };
+        
+        // Mock data generation (simplified)
+        function generateMockGlucoseData() {
+            const readings = [];
+            const now = new Date();
+            let currentValue = 105; // Start with normal value
+            
+            // Generate 12 readings (1 hour of data, every 5 minutes)
+            for (let i = 0; i < 12; i++) {
+                const time = new Date(now.getTime() - (11 - i) * 5 * 60 * 1000);
+                const variation = (Math.random() - 0.5) * 10;
+                currentValue = Math.max(70, Math.min(200, currentValue + variation));
+                
+                readings.push({
+                    timestamp: time.toISOString(),
+                    value: Math.round(currentValue),
+                    trend: 'stable'
+                });
+            }
+            
+            return readings;
+        }
+        
+        // Simulate API calls
+        async function simulateAuth() {
+            if (isDevelopmentMode()) {
+                // This is what happens now - no CORS error!
+                await new Promise(resolve => setTimeout(resolve, 100)); // Simulate delay
+                return { success: true, token: 'mock_token', method: 'mock_data' };
+            } else {
+                // This would happen in production - real API call
+                try {
+                    const response = await fetch('https://usiamapi.eversensedms.com/connect/token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: 'grant_type=password'
+                    });
+                    return { success: true, method: 'real_api' };
+                } catch (error) {
+                    return { success: false, error: error.message, method: 'real_api' };
+                }
+            }
+        }
+        
+        // Run tests
+        async function runTests() {
+            // Test 1: Environment Detection
+            const envResult = document.getElementById('env-test');
+            const isDev = isDevelopmentMode();
+            envResult.innerHTML = `
+                <span class="${isDev ? 'success' : 'info'}">
+                    Current hostname: ${window.location.hostname}<br>
+                    Development mode: ${isDev ? '✅ YES' : '❌ NO'}<br>
+                    Expected result: ${window.location.hostname.includes('localhost') || window.location.hostname.includes('127.0.0.1') ? 'Development mode should be active' : 'Production mode'}
+                </span>
+            `;
+            
+            // Test 2: Mock Data Generation
+            const mockResult = document.getElementById('mock-test');
+            const mockData = generateMockGlucoseData();
+            mockResult.innerHTML = `
+                <span class="success">
+                    ✅ Generated ${mockData.length} mock glucose readings<br>
+                    Sample values: ${mockData.slice(0, 3).map(r => r.value + ' mg/dL').join(', ')}<br>
+                    Time range: ${new Date(mockData[0].timestamp).toLocaleTimeString()} - ${new Date(mockData[mockData.length-1].timestamp).toLocaleTimeString()}
+                </span>
+            `;
+            
+            // Test 3: API Simulation
+            const apiResult = document.getElementById('api-test');
+            apiResult.innerHTML = '<span class="info">Testing authentication...</span>';
+            
+            try {
+                const authResult = await simulateAuth();
+                if (authResult.success) {
+                    apiResult.innerHTML = `
+                        <span class="success">
+                            ✅ Authentication successful!<br>
+                            Method used: ${authResult.method === 'mock_data' ? 'Mock Data (Development)' : 'Real API (Production)'}<br>
+                            ${authResult.token ? 'Token: ' + authResult.token : ''}
+                        </span>
+                    `;
+                } else {
+                    apiResult.innerHTML = `
+                        <span class="error">
+                            ❌ Authentication failed: ${authResult.error}<br>
+                            This would be the CORS error in the original version!
+                        </span>
+                    `;
+                }
+            } catch (error) {
+                apiResult.innerHTML = `<span class="error">❌ Test error: ${error.message}</span>`;
+            }
+            
+            // Test 4: Comparison
+            const comparisonResult = document.getElementById('comparison');
+            comparisonResult.innerHTML = `
+                <div style="display: flex; gap: 20px;">
+                    <div style="flex: 1; background: #ffe6e6; padding: 10px; border-radius: 5px;">
+                        <h4>❌ Original Version (Broken)</h4>
+                        <ul>
+                            <li>Tries to fetch from Eversense API directly</li>
+                            <li>Browser blocks request due to CORS policy</li>
+                            <li>Error: "Access to fetch... has been blocked by CORS policy"</li>
+                            <li>Application fails to load</li>
+                            <li>Developer cannot test locally</li>
+                        </ul>
+                    </div>
+                    <div style="flex: 1; background: #e6ffe6; padding: 10px; border-radius: 5px;">
+                        <h4>✅ Fixed Version (Working)</h4>
+                        <ul>
+                            <li>Detects localhost environment automatically</li>
+                            <li>Uses realistic mock data instead of API calls</li>
+                            <li>No CORS errors - everything works locally</li>
+                            <li>Production functionality preserved</li>
+                            <li>Developer can test and develop easily</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Run tests when page loads
+        runTests();
+    </script>
+</body>
+</html>

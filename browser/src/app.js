@@ -34,6 +34,9 @@ class EversenseApp {
         try {
             console.log('Initializing Eversense Companion...');
             
+            // Show development mode indicator if in development mode
+            EversenseAPI.showDevelopmentModeIndicator();
+            
             // Check if already authenticated
             if (EversenseAPI.isAuthenticated()) {
                 await this.startApplication();
