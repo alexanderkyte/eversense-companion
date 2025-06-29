@@ -286,6 +286,38 @@ git push && git push --tags
    - Check if authentication tokens have expired
    - Ensure API server is accessible
 
+### CORS Issues in Development
+
+When running `npm run dev`, you may encounter CORS (Cross-Origin Resource Sharing) errors when the application tries to connect to the Eversense API. This is normal behavior for browsers when making requests from localhost to external APIs.
+
+**Symptoms:**
+- "Access to fetch at 'https://...' has been blocked by CORS policy" error in browser console
+- Login attempts fail with network errors
+- The application displays a detailed CORS error message with instructions
+
+**Solutions:**
+
+1. **Use Chrome with disabled security** (easiest for development):
+   ```bash
+   # Close all Chrome windows first, then run:
+   chrome --disable-web-security --disable-features=VizDisplayCompositor --user-data-dir=/tmp/chrome-dev-session
+   ```
+
+2. **Use a CORS browser extension**:
+   - Install "CORS Unblock" or "CORS Everywhere" from Chrome Web Store
+   - Enable the extension when developing locally
+
+3. **Use Firefox Developer Edition**:
+   - Firefox Developer Edition has more relaxed CORS policies for local development
+
+4. **Use the production deployed version**:
+   - The app works normally when deployed to a web server (no CORS issues)
+
+5. **Run in a container or VM**:
+   - Use a development environment that doesn't have strict CORS policies
+
+**Note:** CORS is a security feature that protects users from malicious websites. Only disable it during development, never in production.
+
 ### Debug Mode
 
 To enable debug logging, open browser developer tools and check the console. The application logs all API calls and data updates.

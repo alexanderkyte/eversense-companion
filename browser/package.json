@@ -4,7 +4,8 @@
   "description": "Client-only D3.js application for visualizing blood glucose levels in a stock ticker style chart",
   "main": "src/index.js",
   "scripts": {
-    "dev": "http-server . -p 8080 -c-1",
+    "dev": "http-server . -p 8080 -c-1 --cors",
+    "dev:simple": "http-server . -p 8080 -c-1 --cors",
     "build": "npm run copy-assets",
     "copy-assets": "mkdir -p dist && cp -r src/* dist/ && cp index.html dist/",
     "serve": "npm run build && http-server dist -p 8080",
