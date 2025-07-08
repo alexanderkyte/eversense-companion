@@ -217,3 +217,18 @@ Thumbs.db
 
 # Test files
 test-app.js
+
+# Setup artifacts - directories created by setup scripts
+.garmin-sdk/
+.cache/
+.tmp/
+
+# Garmin Connect IQ build outputs
+*.prg
+*.prg.debug
+bin.map
+
+# Temporary download files
+*.dmg
+*.zip
+*.tar.gz

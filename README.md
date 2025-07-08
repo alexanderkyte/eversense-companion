@@ -2,6 +2,41 @@
 
 A repository containing tools and applications for working with Eversense continuous glucose monitoring data.
 
+## Quick Setup
+
+### Automatic Setup (Recommended)
+
+Run the platform-appropriate setup script to install all dependencies:
+
+**Linux/macOS:**
+```bash
+./setup.sh
+```
+
+**Windows (PowerShell - Recommended):**
+```powershell
+.\setup-windows.ps1
+```
+
+**Windows (Command Prompt):**
+```cmd
+setup-windows.bat
+```
+
+### Manual Setup
+
+If you prefer to install dependencies manually, use the platform-specific scripts:
+
+- **Linux:** `./setup-linux.sh`
+- **macOS:** `./setup-macos.sh`
+- **Windows:** `setup-windows.bat` or `setup-windows.ps1`
+
+These scripts will install:
+- Node.js 16+ and npm (for browser application)
+- Python 3.x and pip (for Python client)
+- Java 11+ (for Garmin development)
+- Garmin Connect IQ SDK (for Garmin watchface/datafield)
+
 ## Contents
 
 ### Browser Application
